@@ -1,0 +1,108 @@
+<set pixelsize="9" voxelsize="3">
+	<tiles>
+		<tile name="down" symmetry="T"/>
+		<tile name="empty" symmetry="X"/>
+		<tile name="line" symmetry="I"/>
+		<tile name="turn" symmetry="L" weight="0.5"/>
+		<tile name="up" symmetry="T"/>
+		<tile name="vertical" symmetry="X"/>
+	</tiles>
+	<neighbors>
+		<horizontal left="down 1" right="down 3"/>
+		<horizontal left="down" right="down"/>
+		<horizontal left="down" right="down 1"/>
+		<horizontal left="down" right="down 2"/>
+		<horizontal left="down 3" right="down 1"/>
+		<horizontal left="down" right="empty"/>
+		<horizontal left="down 3" right="empty"/>
+		<horizontal left="down" right="line"/>
+		<horizontal left="down 3" right="line"/>
+		<horizontal left="down 1" right="line 1"/>
+		<horizontal left="down" right="turn"/>
+		<horizontal left="down" right="turn 3"/>
+		<horizontal left="down 3" right="turn"/>
+		<horizontal left="down 1" right="turn 1"/>
+		<horizontal left="down" right="up"/>
+		<horizontal left="down" right="up 1"/>
+		<horizontal left="down" right="up 2"/>
+		<horizontal left="down 3" right="up"/>
+		<horizontal left="down 3" right="up 1"/>
+		<horizontal left="down 1" right="up 3"/>
+		<horizontal left="down" right="vertical"/>
+		<horizontal left="down 3" right="vertical"/>
+		<horizontal left="empty" right="empty"/>
+		<horizontal left="empty" right="line"/>
+		<horizontal left="empty" right="turn"/>
+		<horizontal left="empty" right="up"/>
+		<horizontal left="empty" right="up 1"/>
+		<horizontal left="empty" right="vertical"/>
+		<horizontal left="line" right="line"/>
+		<horizontal left="line 1" right="line 1"/>
+		<horizontal left="line" right="turn"/>
+		<horizontal left="line 1" right="turn 1"/>
+		<horizontal left="line" right="up"/>
+		<horizontal left="line" right="up 1"/>
+		<horizontal left="line 1" right="up 3"/>
+		<horizontal left="line" right="vertical"/>
+		<horizontal left="turn" right="turn 2"/>
+		<horizontal left="turn" right="turn 1"/>
+		<horizontal left="turn 1" right="turn"/>
+		<horizontal left="turn 1" right="turn 3"/>
+		<horizontal left="turn" right="up 3"/>
+		<horizontal left="up" right="turn"/>
+		<horizontal left="up" right="turn 3"/>
+		<horizontal left="up 3" right="turn"/>
+		<horizontal left="turn 1" right="vertical"/>
+		<horizontal left="up 1" right="up 3"/>
+		<horizontal left="up" right="up"/>
+		<horizontal left="up" right="up 1"/>
+		<horizontal left="up" right="up 2"/>
+		<horizontal left="up 3" right="up 1"/>
+		<horizontal left="up" right="vertical"/>
+		<horizontal left="up 3" right="vertical"/>
+		<horizontal left="vertical" right="vertical"/>
+		<vertical left="empty" right="down"/>
+		<vertical left="empty" right="empty"/>
+		<vertical left="empty" right="line"/>
+		<vertical left="line" right="empty"/>
+		<vertical left="empty" right="turn"/>
+		<vertical left="turn" right="empty"/>
+		<vertical left="up" right="empty"/>
+		<vertical left="line" right="line"/>
+		<vertical left="line" right="line 1"/>
+		<vertical left="line" right="turn"/>
+		<vertical left="turn" right="line"/>
+		<vertical left="up" right="line"/>
+		<vertical left="up 1" right="line"/>
+		<vertical left="line" right="down"/>
+		<vertical left="line 1" right="down"/>
+		<vertical left="turn" right="down"/>
+		<vertical left="turn 3" right="down"/>
+		<vertical left="up" right="down"/>
+		<vertical left="up" right="down 1"/>
+		<vertical left="up" right="down 2"/>
+		<vertical left="down" right="up"/>
+		<vertical left="down" right="up 1"/>
+		<vertical left="down" right="up 2"/>
+		<vertical left="down" right="vertical"/>
+		<vertical left="turn" right="turn"/>
+		<vertical left="turn" right="turn 1"/>
+		<vertical left="turn" right="turn 2"/>
+		<vertical left="up" right="turn"/>
+		<vertical left="up" right="turn 3"/>
+		<vertical left="vertical" right="up"/>
+		<vertical left="vertical" right="vertical"/>
+	</neighbors>
+	<subsets>
+		<subset name="dense knots">
+			<tile name="down" symmetry="T"/>
+			<tile name="line" symmetry="I"/>
+			<tile name="turn" symmetry="L"/>
+			<tile name="up" symmetry="T"/>
+			<tile name="vertical" symmetry="X"/>
+		</subset>
+		<subset name="only turns">
+			<tile name="turn" symmetry="L"/>
+		</subset>
+	</subsets>
+</set>

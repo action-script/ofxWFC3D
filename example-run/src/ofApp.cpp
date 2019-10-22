@@ -3,7 +3,8 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
         // config_name, subset, x, y, z, periodic, ground
-        ofxWFC3D wfc("config", "default", 5, 5, 5, false, "ground");
+        //ofxWFC3D wfc("data.xml", "default", 5, 5, 5, false, "ground");
+        wfc.SetUp("data.xml", "dense knots", 5, 5, 5, false, "ground");
 }
 
 //--------------------------------------------------------------
