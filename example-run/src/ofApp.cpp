@@ -3,14 +3,14 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
         // config_name, subset, x, y, z, periodic, ground
-        //ofxWFC3D wfc("data.xml", "default", 5, 5, 5, false, "ground");
-        wfc.SetUp("data.xml", "dense knots", 7, 8, 4, false, "ground");
+        wfc.SetUp("data.xml", "default", 5, 5, 3, false, "ground");
+        //wfc.SetUp("data.xml", "dense knots", 7, 8, 4, false, "ground");
         int limit = 3, seed = 101;
         for (int k = 0; k < limit; k++) {
             bool result = wfc.Run(seed);
 
             if (result) {
-              ofLog() << "WFc success";
+              ofLog() << "WFC success";
               std::string map_text = wfc.TextOutput();
               ofLog() << map_text;
               break;

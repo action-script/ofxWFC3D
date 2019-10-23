@@ -374,7 +374,7 @@ bool ofxWFC3D::Propagate()
                             }
 
                             if (!can_prop) {
-                                wave2[t2] = false;
+                                wave[x2][y2][z2][t2] = false;
                                 changes[x2][y2][z2] = true;
                                 change = true;
                             }
