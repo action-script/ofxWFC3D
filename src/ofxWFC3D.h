@@ -18,7 +18,7 @@ enum class Status {
 
 class ofxWFC3D {
 public:
-    ofxWFC3D();
+    ofxWFC3D() {}
     void SetUp(std::string name, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name);
     bool Run(int seed);
     std::string TextOutput();
@@ -26,12 +26,14 @@ public:
 protected:
     Status Observe();
     bool Propagate();
-    void Clean();
+    void Clear();
 
 private:
     size_t max_x, max_y, max_z;
     size_t num_patterns;
     bool periodic;
+
+    size_t ground;
 
     std::vector< std::vector< std::vector< std::vector<bool> > > > wave;    // bool [][][][]
     std::vector< std::vector< std::vector<bool> > > changes;                // bool [][][]
