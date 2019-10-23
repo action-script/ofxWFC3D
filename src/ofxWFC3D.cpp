@@ -199,12 +199,12 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
     } // end neighbors
 
 
-    ofLog() << "Initialize Done";
+    //ofLog() << "Initialize Done";
 }
 
 Status ofxWFC3D::Observe()
 {
-    ofLog() << " -- Observing --";
+    //ofLog() << " -- Observing --";
     double min = 1E+3, sum, main_sum, log_sum, noise, entropy;
 
     
@@ -296,7 +296,7 @@ Status ofxWFC3D::Observe()
 
 bool ofxWFC3D::Propagate()
 {
-    ofLog() << " -- Propagating --";
+    //ofLog() << " -- Propagating --";
     bool change = false, can_prop;
 
     for (size_t x2 = 0; x2 < max_x; x2++) {
@@ -447,7 +447,7 @@ bool ofxWFC3D::Run(int seed)
 std::string ofxWFC3D::TextOutput()
 {
     std::string result = "mama";
-    ofLog() << "max_x: " << max_x << ", max_y: " << max_y << ", max_z" << max_z; 
+    //ofLog() << "max_x: " << max_x << ", max_y: " << max_y << ", max_z" << max_z; 
 
     for (size_t x = 0 ; x < max_x; x++) {
         for (size_t y = 0 ; y < max_y; y++) {

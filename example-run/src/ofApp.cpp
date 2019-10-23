@@ -2,22 +2,32 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-        // config_name, subset, x, y, z, periodic, ground
-        wfc.SetUp("data.xml", "default", 5, 5, 3, false, "ground");
-        //wfc.SetUp("data.xml", "dense knots", 7, 8, 4, false, "ground");
-        int limit = 3, seed = 101;
-        for (int k = 0; k < limit; k++) {
-            bool result = wfc.Run(seed);
+    ofSetVerticalSync(true);
+    cam.setDistance(20);
 
-            if (result) {
-              ofLog() << "WFC success";
-              std::string map_text = wfc.TextOutput();
-              ofLog() << map_text;
-              break;
-            } else {
-              ofLog() << "WFc failure";
-            }
-      }
+    int x = 8, y = 3, z = 8;
+
+    container.set(x, y, z);
+    container.setScale(1.0f);
+    container.setPosition(0, y/2.0f, 0);
+
+    // config_name, subset, x, y, z, periodic, ground
+    wfc.SetUp("data.xml", "default", x, y, z, false, "ground");
+    //wfc.SetUp("data.xml", "dense knots", 7, 8, 4, false, "ground");
+
+    int limit = 3, seed = 101;
+    for (int k = 0; k < limit; k++) {
+        bool result = wfc.Run(seed);
+
+        if (result) {
+            ofLog() << "WFC success";
+            std::string map_text = wfc.TextOutput();
+            ofLog() << map_text;
+            break;
+        } else {
+            ofLog() << "WFc failure";
+        }
+    }
 }
 
 //--------------------------------------------------------------
@@ -26,7 +36,21 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+    //ofBackground(20);
 
+    cam.begin();
+
+    ofEnableDepthTest();
+    ofDrawGrid(10.0, 10, false, false, true, false);
+    ofDrawAxis(10);
+
+    //container.draw();
+    container.drawWireframe();
+
+    cam.end();
+
+    ofSetColor(255);
+    ofDrawBitmapString("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
 }
 
 //--------------------------------------------------------------

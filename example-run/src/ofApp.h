@@ -23,6 +23,10 @@ class ofApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
         
 
+        // scene
+        ofEasyCam cam;
+        ofBoxPrimitive container;
+
         ofxWFC3D wfc;
 		
 };
