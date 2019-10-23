@@ -7,10 +7,10 @@ size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one)
 void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name)
 {
     //initialize members
-    max_x = max_x;
-    max_y = max_y;
-    max_z = max_z;
-    periodic = periodic;
+    this->max_x = max_x;
+    this->max_y = max_y;
+    this->max_z = max_z;
+    this->periodic = periodic;
 
     ground = -1;
 
@@ -103,12 +103,25 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 			action.push_back(map);
 		}
 
+        /*
+         *for (auto& a : action) {
+         *    for (auto& b :a) {
+         *        ofLog() << " " << b;
+         *    }
+         *    ofLog() << "-";
+         *}
+         */
+
         // TODO: unique
         // TODO: tiles / voxels/ ofnodes?
+        tile_data.push_back(tile_name+" 0");
+        for (int t = 1; t < cardinality; t++) {
+            tile_data.push_back(tile_name + (" " + t));
+		}
 
+        // weights
         auto xmla_tile_weight = xmln_tile.getAttribute("weight");
         float tile_weight = xmla_tile_weight.getValue() == "" ? 1.0f : xmla_tile_weight.getFloatValue();
-        //ofLog() << "tile_weight: " << tile_weight; 
         for (int t = 0; t < cardinality; t++) {
 		    pattern_weight.push_back(tile_weight);
 		}
@@ -118,14 +131,14 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     num_patterns = action.size();
 
-    propagator.resize(6);
+    propagator.resize(6); // bool [6][T][T]
     for (int d = 0; d < 6; d++) {
         propagator[d].resize(num_patterns);
         for (size_t t = 0; t < num_patterns; t++)
             propagator[d][t].resize(num_patterns, false);
     }
 
-    // prepare map
+    // prepare maps
     wave.resize(max_x);
     changes.resize(max_x);
     observed.resize(max_x);
@@ -150,8 +163,8 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         auto left = ofSplitString( xmln_neighbor.getAttribute("left").getValue(), " ", true);
         auto right = ofSplitString( xmln_neighbor.getAttribute("right").getValue(), " ", true);
 
-        if (left.size() < 2) left.push_back("0");
-        if (right.size() < 2) right.push_back("0");
+        if (left.size() == 1) left.push_back("0");
+        if (right.size() == 1) right.push_back("0");
 
         if (subset.size() > 0 && (!ofContains(subset, left[0]) || !ofContains(subset, right[0]))) continue;
 
@@ -191,6 +204,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
 Status ofxWFC3D::Observe()
 {
+    ofLog() << " -- Observing --";
     double min = 1E+3, sum, main_sum, log_sum, noise, entropy;
 
     
@@ -282,6 +296,7 @@ Status ofxWFC3D::Observe()
 
 bool ofxWFC3D::Propagate()
 {
+    ofLog() << " -- Propagating --";
     bool change = false, can_prop;
 
     for (size_t x2 = 0; x2 < max_x; x2++) {
@@ -292,42 +307,42 @@ bool ofxWFC3D::Propagate()
                     int x1 = x2, y1 = y2, z1 = z2;
 
                     // Periodic Check
-                    if (d == 0) {
+                    if (d == 0) { // <
                         if (x2 == 0) {
                             if (!periodic) continue;
                             else x1 = max_x - 1;
                         }
                         else x1 = x2 - 1;
                     }
-                    else if (d == 1) {
+                    else if (d == 1) { // ^
                         if (y2 == max_y - 1) {
                             if (!periodic) continue;
                             else y1 = 0;
                         }
                         else y1 = y2 + 1;
                     }
-                    else if (d == 2) {
+                    else if (d == 2) { // >
                         if (x2 == max_x - 1) {
                             if (!periodic) continue;
                             else x1 = 0;
                         }
                         else x1 = x2 + 1;
                     }
-                    else if (d == 3) {
+                    else if (d == 3) { // v
                         if (y2 == 0) {
                             if (!periodic) continue;
                             else y1 = max_y - 1;
                         }
                         else y1 = y2 - 1;
                     }
-                    else if (d == 4) {
+                    else if (d == 4) { // z>
                         if (z2 == max_z - 1) {
                             if (!periodic) continue;
                             else z1 = 0;
                         }
                         else z1 = z2 + 1;
                     }
-                    else {
+                    else { // <z
                         if (z2 == 0) {
                             if (!periodic) continue;
                             else z1 = max_z - 1;
@@ -341,8 +356,8 @@ bool ofxWFC3D::Propagate()
                         continue;
                     }
 
-                    // x1 = Original Voxel
-                    // X2  = Neighbor Depending on Direction (0 - 6) and Periodicity
+                    // x2 = Original Voxel
+                    // x1 = Neighbor Depending on Direction (0 - 6) and Periodicity
 
                     auto wave1 = wave[x1][y1][z1];
                     auto wave2 = wave[x2][y2][z2];
@@ -366,7 +381,6 @@ bool ofxWFC3D::Propagate()
 
                         }
                     } // end t2
-
 
 
                 }
@@ -413,7 +427,7 @@ bool ofxWFC3D::Run(int seed)
     log_T = log(num_patterns);
 
     for (size_t t = 0; t < num_patterns; t++)
-        log_prob[t] = log(pattern_weight[t]);
+        log_prob.push_back( log(pattern_weight[t]) );
 
     Clear();
 
@@ -427,11 +441,28 @@ bool ofxWFC3D::Run(int seed)
 
         while(Propagate());
     }
+    return false;
 }
 
 std::string ofxWFC3D::TextOutput()
 {
-    return "done";
+    std::string result = "mama";
+    ofLog() << "max_x: " << max_x << ", max_y: " << max_y << ", max_z" << max_z; 
+
+    for (size_t x = 0 ; x < max_x; x++) {
+        for (size_t y = 0 ; y < max_y; y++) {
+            for (size_t z = 0 ; z < max_z; z++) {
+                //ofLog() << "printing observed val" << observed[x][y][z]; 
+                result.append("[");
+                result.append(tile_data[observed[x][y][z]]);
+                result.append("], ");
+            }
+            result.append("\n");
+        }
+        result.append("\n");
+    }
+    
+    return result;
 }
 
 

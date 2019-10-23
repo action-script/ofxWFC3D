@@ -33,7 +33,7 @@ private:
     size_t num_patterns;
     bool periodic;
 
-    size_t ground;
+    int ground;
 
     std::vector< std::vector< std::vector< std::vector<bool> > > > wave;    // bool [][][][]
     std::vector< std::vector< std::vector<bool> > > changes;                // bool [][][]
@@ -41,6 +41,8 @@ private:
 
     std::vector< std::vector< std::vector<bool> > > propagator;             // bool [][][]
     std::vector<double> pattern_weight;
+
+    std::vector<std::string> tile_data;
 
 
     std::vector<double> log_prob;
