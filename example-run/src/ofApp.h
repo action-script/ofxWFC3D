@@ -2,6 +2,8 @@
 
 #include "ofMain.h"
 #include "ofxWFC3D.h"
+#include "ofxAssimpModelLoader.h"
+#include "ofxGui.h"
 
 class ofApp : public ofBaseApp{
 
@@ -26,7 +28,21 @@ class ofApp : public ofBaseApp{
         // scene
         ofEasyCam cam;
         ofBoxPrimitive container;
+        ofMaterial material;
+        ofLight light, light2;
+
+        // models
+        ofxAssimpModelLoader m_down, m_line, m_turn, m_up, m_vertical, m_cube;
+        ofNode meshNode, worldNode;
+        std::unordered_map<std::string, ofxAssimpModelLoader*> tiles;
+        std::vector< std::unordered_map<std::string, ofNode> > nodes;
+        std::vector<ofNode> trash;
+
 
         ofxWFC3D wfc;
 		
+
+        // gui
+        ofxPanel gui;
+        ofxFloatSlider slider_1, slider_2;
 };

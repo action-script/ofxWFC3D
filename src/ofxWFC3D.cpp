@@ -116,7 +116,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         // TODO: tiles / voxels/ ofnodes?
         tile_data.push_back(tile_name+" 0");
         for (int t = 1; t < cardinality; t++) {
-            tile_data.push_back(tile_name + (" " + t));
+            tile_data.push_back(tile_name + (" " + ofToString(t)));
 		}
 
         // weights
@@ -463,6 +463,24 @@ std::string ofxWFC3D::TextOutput()
     }
     
     return result;
+}
+std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > ofxWFC3D::TileOutput() {
+    std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > tiles;
+    tiles.resize(max_x);
+    for (size_t x = 0 ; x < max_x; x++) {
+        tiles[x].resize(max_y);
+        for (size_t y = 0 ; y < max_y; y++) {
+            tiles[x][y].resize(max_z);
+            for (size_t z = 0 ; z < max_z; z++) {
+
+                auto tile_cardinality = ofSplitString(tile_data[observed[x][y][z]], " ", true);
+                tiles[x][y][z][tile_cardinality[0]] = ofToInt(tile_cardinality[1]);
+                 
+            }
+        }
+    }
+
+    return tiles;
 }
 
 

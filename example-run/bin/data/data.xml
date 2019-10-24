@@ -103,6 +103,11 @@
 		</subset>
 		<subset name="only turns">
 			<tile name="turn" symmetry="L"/>
+			<tile name="line" symmetry="I"/>
+		</subset>
+		<subset name="vertical">
+            <tile name="up" symmetry="T"/>
+            <tile name="down" symmetry="T"/>
 		</subset>
 	</subsets>
 </set>

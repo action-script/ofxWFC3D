@@ -22,6 +22,7 @@ public:
     void SetUp(std::string name, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name);
     bool Run(int seed);
     std::string TextOutput();
+    std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > TileOutput();
 
 protected:
     Status Observe();
