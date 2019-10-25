@@ -55,17 +55,17 @@ void ofApp::setup(){
 
 
     // config_name, subset, x, y, z, periodic, ground
-    //wfc.SetUp("data.xml", "default", x, z, y, false, "none");
-    //wfc.SetUp("data.xml", "default", x, z, y, false, "none");
-    //wfc.SetUp("data.xml", "default", x, z, y, false, "empty");
-    //wfc.SetUp("data.xml", "default", x, z, y, false, "vertical");
-    wfc.SetUp("data.xml", "only turns", x, z, y, false, "none");
-    //wfc.SetUp("data.xml", "vertical", x, z, y, false, "none");
+    //wfc.SetUp("data2.xml", "default", x, y, z, false, "none");
+    //wfc.SetUp("data3.xml", "default", x, y, z, false, "none");
+    //wfc.SetUp("data.xml", "default", x, y, z, false, "none");
+    //wfc.SetUp("data.xml", "default", x, y, z, false, "vertical");
+    //wfc.SetUp("data.xml", "only turns", x, y, z, false, "none");
+    wfc.SetUp("data.xml", "vertical", x, y, z, false, "none");
 
 
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > tiles_wfc;
 
-    int limit = 5, seed = 101;
+    int limit = 8, seed = 101;
     for (int k = 0; k < limit; k++) {
         bool result = wfc.Run(seed++);
 
@@ -77,7 +77,7 @@ void ofApp::setup(){
             tiles_wfc = wfc.TileOutput();
             break;
         } else {
-            ofLog() << "WFc failure";
+            ofLog() << "WFC failure";
         }
     }
 
@@ -93,15 +93,15 @@ void ofApp::setup(){
                 //gridpos.setParent(worldNode);
                 //gridpos.setPosition(ix, iy, iz);
                 //trash.push_back(gridpos);
-                //ofLog() << "node pos: " << ix << ", " << iy << ", " << iz;
                 for (auto& key: tz) {
+                    ofLog() << key.first << ": " << ix << ", " << iy << ", " << iz;
                     if (key.first != "empty") {
                         std::unordered_map<std::string, ofNode> nmap;
                         ofNode cardinality;
 
                         cardinality.setParent(worldNode);
                         //cardinality.setPosition(ix-x/2, iy, iz-z/2);
-                        cardinality.setPosition(ix*vs, iz*vs, iy*vs);
+                        cardinality.setPosition(ix*vs, iy*vs, iz*vs);
                         cardinality.rotateDeg(tz[key.first]*90.0f, ofVec3f(0.0, 1.0, 0.0));
                         nmap[key.first] = cardinality;
                         //nmap[key.first] = gridpos;
@@ -146,15 +146,17 @@ void ofApp::draw(){
     //light2.enable();
 
 
-    //worldNode.rotateDeg(4.0, ofVec3f(0.0, 1.0, 0.0));
+    //worldNode.rotateDeg(1.0, ofVec3f(0.0, 1.0, 0.0));
     //worldNode.move(0.0, 0.0, 0.004);
     worldNode.transformGL();
-    m_totem.draw();
+    //m_totem.draw();
+    m_up.draw();
     worldNode.restoreTransformGL();
 
     for (auto& node : nodes) {
         for (auto& k : node) {
             auto key = k.first;
+            //if (key == "turn") node[key].rotateDeg(0.4, ofVec3f(0.0, 1.0, 0.0));
             node[key].transformGL();
             tiles[key]->draw();
             node[key].restoreTransformGL();

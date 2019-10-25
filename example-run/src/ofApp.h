@@ -47,6 +47,6 @@ class ofApp : public ofBaseApp{
         ofxFloatSlider slider_1, slider_2;
 
 
-        int x = 8, y = 2, z = 8;
+        int x = 15, y = 5, z = 8;
         float vs = 3.0; // voxel size
 };
