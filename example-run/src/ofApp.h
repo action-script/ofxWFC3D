@@ -32,9 +32,9 @@ class ofApp : public ofBaseApp{
         ofLight light, light2;
 
         // models
-        ofxAssimpModelLoader m_down, m_line, m_turn, m_up, m_vertical, m_cube;
+        ofMesh m_down, m_line, m_turn, m_up, m_vertical, m_cube, m_totem;
         ofNode meshNode, worldNode;
-        std::unordered_map<std::string, ofxAssimpModelLoader*> tiles;
+        std::unordered_map<std::string, ofMesh*> tiles;
         std::vector< std::unordered_map<std::string, ofNode> > nodes;
         std::vector<ofNode> trash;
 
@@ -45,4 +45,8 @@ class ofApp : public ofBaseApp{
         // gui
         ofxPanel gui;
         ofxFloatSlider slider_1, slider_2;
+
+
+        int x = 8, y = 2, z = 8;
+        float vs = 3.0; // voxel size
 };
