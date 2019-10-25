@@ -19,7 +19,7 @@ enum class Status {
 class ofxWFC3D {
 public:
     ofxWFC3D() {}
-    void SetUp(std::string name, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name);
+    void SetUp(std::string name, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name, std::string empty_name);
     bool Run(int seed);
     std::string TextOutput();
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > TileOutput();
@@ -34,7 +34,7 @@ private:
     size_t num_patterns;
     bool periodic;
 
-    int ground;
+    int ground_id, empty_id;
 
     std::vector< std::vector< std::vector< std::vector<bool> > > > wave;    // bool [][][][]
     std::vector< std::vector< std::vector<bool> > > changes;                // bool [][][]

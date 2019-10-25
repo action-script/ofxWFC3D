@@ -4,7 +4,7 @@ size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one)
 
 // ------------------
 
-void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name)
+void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name, std::string empty_name)
 {
     //initialize members
     this->max_x = max_x;
@@ -12,7 +12,8 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
     this->max_z = max_z;
     this->periodic = periodic;
 
-    ground = -1;
+    ground_id = -1;
+    empty_id = -1;
 
 
     //std::cout << "config path: " << config_file << std::endl;
@@ -82,7 +83,8 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 		first_occurrence[tile_name] = num_patterns;
 
         //TODO: set ground and other tiles
-        if (tile_name == ground_name) ground = num_patterns;
+        if (tile_name == ground_name) ground_id = num_patterns;
+        if (tile_name == empty_name) empty_id = num_patterns;
 
         for (int t = 0; t < cardinality; ++t) {
             std::array<int, 8> map;
@@ -414,24 +416,54 @@ void ofxWFC3D::Clear()
         }
     }
 
-    if (ground >= 0) {
+    if (ground_id >= 0) {
 
         for (size_t x = 0 ; x < max_x; x++) {
             for (size_t z = 0 ; z < max_z; z++) {
 
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (t != ground) wave[x][0][z][t] = false;
+                    if (t != ground_id) wave[x][0][z][t] = false;
                 }
                 changes[x][0][z] = true;
 
                 //for (size_t z = 0; z < max_z - 1; z++) {
                 for (size_t y = 1; y < max_y; y++) {
-                    wave[x][y][z][ground] = false;
+                    wave[x][y][z][ground_id] = false;
                     changes[x][y][z] = true;
                 }
             }
         }
     }
+
+    // TODO: surround logic. x - border.
+    if (empty_id >= 0) {
+        for (size_t y = 0 ; y < max_y; y++) {
+            for (size_t z = 0 ; z < max_z; z++) {
+
+                for (size_t t = 0; t < num_patterns; t++) {
+                    if (t != empty_id) {
+                        wave[0][y][z][t] = false;
+                        wave[max_x-1][y][z][t] = false;
+                    }
+                }
+                changes[0][y][z] = true;
+                changes[max_x-1][y][z] = true;
+            }
+
+            for (size_t x = 0 ; x < max_x; x++) {
+                for (size_t t = 0; t < num_patterns; t++) {
+                    if (t != empty_id) {
+                        wave[x][y][0][t] = false;
+                        wave[x][y][max_z-1][t] = false;
+                    }
+                }
+                changes[x][y][0] = true;
+                changes[x][y][max_z-1] = true;
+
+            }
+        }
+    }
+
 }
 
 bool ofxWFC3D::Run(int seed)

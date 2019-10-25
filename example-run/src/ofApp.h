@@ -29,16 +29,16 @@ class ofApp : public ofBaseApp{
         ofEasyCam cam;
         ofBoxPrimitive container;
         ofMaterial material;
-        ofLight light, light2;
+        ofLight light;
 
         // models
         ofMesh m_down, m_line, m_turn, m_up, m_vertical, m_cube, m_totem;
-        ofNode meshNode, worldNode;
+        ofNode worldNode;
         std::unordered_map<std::string, ofMesh*> tiles;
         std::vector< std::unordered_map<std::string, ofNode> > nodes;
-        std::vector<ofNode> trash;
 
 
+        // WFC
         ofxWFC3D wfc;
 		
 
@@ -46,7 +46,6 @@ class ofApp : public ofBaseApp{
         ofxPanel gui;
         ofxFloatSlider slider_1, slider_2;
 
-
-        int x = 15, y = 5, z = 8;
+        int x = 8, y = 4, z = 6;
         float vs = 3.0; // voxel size
 };

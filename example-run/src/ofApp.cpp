@@ -15,16 +15,6 @@ void ofApp::setup(){
 	light.setDiffuseColor(ofFloatColor::yellow);
     light.setup();
 
-    light2.move(-2,4,1);
-    light2.lookAt(ofVec3f(0.0,0.0,0.0));
-    light2.setDirectional();
-    ofFloatColor l2(0.2,0.2,0.5);
-	light2.setDiffuseColor(l2);
-    light2.setup();
-
-
-    //int x = 7, y = 1, z = 7;
-
     container.set(x, y, z);
     container.setScale(1.0f);
     container.setPosition(0, y/2.0f, 0);
@@ -48,71 +38,8 @@ void ofApp::setup(){
     tiles["up"] = &m_up;
     tiles["vertical"] = &m_vertical;
 
-    //tiles["down"] = &m_up;
-    //tiles["up"] = &m_down;
-
     worldNode.setOrientation(glm::angleAxis(ofDegToRad(0.f), glm::vec3{1.f, 0.f, 0.f}));
 
-
-    // config_name, subset, x, y, z, periodic, ground
-    //wfc.SetUp("data2.xml", "default", x, y, z, false, "none");
-    //wfc.SetUp("data3.xml", "default", x, y, z, false, "none");
-    //wfc.SetUp("data.xml", "default", x, y, z, false, "none");
-    //wfc.SetUp("data.xml", "default", x, y, z, false, "vertical");
-    //wfc.SetUp("data.xml", "only turns", x, y, z, false, "none");
-    wfc.SetUp("data.xml", "vertical", x, y, z, false, "none");
-
-
-    std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > tiles_wfc;
-
-    int limit = 8, seed = 101;
-    for (int k = 0; k < limit; k++) {
-        bool result = wfc.Run(seed++);
-
-        if (result) {
-            ofLog() << "WFC success";
-            std::string map_text = wfc.TextOutput();
-            ofLog() << map_text;
-
-            tiles_wfc = wfc.TileOutput();
-            break;
-        } else {
-            ofLog() << "WFC failure";
-        }
-    }
-
-    // process tiles and convert to ofNode tree
-    int ix = 0, iy = 0, iz = 0;
-    for (auto& tx : tiles_wfc) {
-        ix++;
-        for (auto& ty : tx) {
-            iy++;
-            for (auto& tz : ty) {
-                iz++;
-                //ofNode gridpos;
-                //gridpos.setParent(worldNode);
-                //gridpos.setPosition(ix, iy, iz);
-                //trash.push_back(gridpos);
-                for (auto& key: tz) {
-                    ofLog() << key.first << ": " << ix << ", " << iy << ", " << iz;
-                    if (key.first != "empty") {
-                        std::unordered_map<std::string, ofNode> nmap;
-                        ofNode cardinality;
-
-                        cardinality.setParent(worldNode);
-                        //cardinality.setPosition(ix-x/2, iy, iz-z/2);
-                        cardinality.setPosition(ix*vs, iy*vs, iz*vs);
-                        cardinality.rotateDeg(tz[key.first]*90.0f, ofVec3f(0.0, 1.0, 0.0));
-                        nmap[key.first] = cardinality;
-                        //nmap[key.first] = gridpos;
-                        nodes.push_back(nmap);
-                    }
-                }
-            }
-            iz = 0;
-        }
-        iy = 0;
-    }
 
     gui.setup();
     gui.add(slider_1.setup("up", 0, 0, 360));
@@ -133,30 +60,16 @@ void ofApp::draw(){
     ofEnableDepthTest();
     ofDrawGrid(1.0, 10, false, false, true, false);
     ofDrawAxis(10);
-    //light.draw();
 
-    //ofDrawBox(ofVec3f(-2.5, 0.5, -2.5), 1.0);
-
-    //container.drawWireframe();
-
-    //m_cube.drawFaces();
+    ofSetColor(100, 100, 255);
+    container.drawWireframe();
 
     material.begin();
     light.enable();
-    //light2.enable();
-
-
-    //worldNode.rotateDeg(1.0, ofVec3f(0.0, 1.0, 0.0));
-    //worldNode.move(0.0, 0.0, 0.004);
-    worldNode.transformGL();
-    //m_totem.draw();
-    m_up.draw();
-    worldNode.restoreTransformGL();
 
     for (auto& node : nodes) {
         for (auto& k : node) {
             auto key = k.first;
-            //if (key == "turn") node[key].rotateDeg(0.4, ofVec3f(0.0, 1.0, 0.0));
             node[key].transformGL();
             tiles[key]->draw();
             node[key].restoreTransformGL();
@@ -164,14 +77,13 @@ void ofApp::draw(){
     }
 
 
-    //light2.disable();
     light.disable();
     material.end();
 
     cam.end();
 
-    ofSetColor(255);
-    ofDrawBitmapString("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
+    ofSetColor(255,255,255);
+    ofDrawBitmapStringHighlight("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
     gui.draw();
 
 
@@ -183,7 +95,64 @@ void ofApp::draw(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
+    if (key == 32) {
+        // config_name, subset, x, y, z, periodic, ground
+        wfc.SetUp("data.xml", "default", x, y, z, false, "none", "empty");
+        //wfc.SetUp("data.xml", "default", x, y, z, false, "vertical");
+        //wfc.SetUp("data.xml", "only turns", x, y, z, false, "none");
+        //wfc.SetUp("data.xml", "vertical", x, y, z, false, "none");
 
+
+        std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > tiles_wfc;
+
+        int limit = 8, seed = (int)ofRandom(1000);
+        for (int k = 0; k < limit; k++) {
+            bool result = wfc.Run(seed++);
+
+            if (result) {
+                ofLog() << "WFC success";
+                //std::string map_text = wfc.TextOutput();
+                //ofLog() << map_text;
+
+                tiles_wfc = wfc.TileOutput();
+                break;
+            } else {
+                ofLog() << "WFC failure";
+            }
+        }
+
+        // process tiles and convert to ofNode tree
+        int ix = 0, iy = 0, iz = 0;
+        nodes.clear();
+        for (auto& tx : tiles_wfc) {
+            ix++;
+            for (auto& ty : tx) {
+                iy++;
+                for (auto& tz : ty) {
+                    iz++;
+                    for (auto& key: tz) {
+                        if (key.first != "empty") {
+                            std::unordered_map<std::string, ofNode> nmap;
+                            ofNode cardinality;
+
+                            cardinality.setParent(worldNode);
+                            cardinality.setPosition(ix*vs, iy*vs, iz*vs);
+                            cardinality.rotateDeg(tz[key.first]*90.0f, ofVec3f(0.0, 1.0, 0.0));
+                            nmap[key.first] = cardinality;
+                            nodes.push_back(nmap);
+                        }
+                    }
+                }
+                iz = 0;
+            }
+            iy = 0;
+        }
+
+        worldNode.setPosition(-x*vs/2.0/3.0, 0, -z*vs/2.0/3.0);
+        worldNode.move(-0.5,-0.5,-0.5);
+        worldNode.setScale(1/3.0);
+
+    }
 }
 
 //--------------------------------------------------------------
