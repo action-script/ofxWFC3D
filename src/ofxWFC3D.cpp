@@ -306,6 +306,54 @@ bool ofxWFC3D::Propagate()
 
                     int x1 = x2, y1 = y2, z1 = z2;
 
+                    /*
+                     * // Periodic Check
+                     *if (d == 0) { // <
+                     *    if (x2 == 0) {
+                     *        if (!periodic) continue;
+                     *        else x1 = max_x - 1;
+                     *    }
+                     *    else x1 = x2 - 1;
+                     *}
+                     *else if (d == 1) { // ^
+                     *    if (y2 == max_y - 1) {
+                     *        if (!periodic) continue;
+                     *        else y1 = 0;
+                     *    }
+                     *    else y1 = y2 + 1;
+                     *}
+                     *else if (d == 2) { // >
+                     *    if (x2 == max_x - 1) {
+                     *        if (!periodic) continue;
+                     *        else x1 = 0;
+                     *    }
+                     *    else x1 = x2 + 1;
+                     *}
+                     *else if (d == 3) { // v
+                     *    if (y2 == 0) {
+                     *        if (!periodic) continue;
+                     *        else y1 = max_y - 1;
+                     *    }
+                     *    else y1 = y2 - 1;
+                     *}
+                     *else if (d == 4) { // z>
+                     *    if (z2 == max_z - 1) {
+                     *        if (!periodic) continue;
+                     *        else z1 = 0;
+                     *    }
+                     *    else z1 = z2 + 1;
+                     *}
+                     *else { // <z
+                     *    if (z2 == 0) {
+                     *        if (!periodic) continue;
+                     *        else z1 = max_z - 1;
+                     *    }
+                     *    else z1 = z2 - 1;
+                     *} // end periodic check
+                     */
+
+                    // coord and axis replacement for xyz | x+ yUp zForward
+
                     // Periodic Check
                     if (d == 0) { // <
                         if (x2 == 0) {
@@ -315,11 +363,11 @@ bool ofxWFC3D::Propagate()
                         else x1 = x2 - 1;
                     }
                     else if (d == 1) { // ^
-                        if (y2 == max_y - 1) {
+                        if (z2 == max_z- 1) {
                             if (!periodic) continue;
-                            else y1 = 0;
+                            else z1 = 0;
                         }
-                        else y1 = y2 + 1;
+                        else z1 = z2 + 1;
                     }
                     else if (d == 2) { // >
                         if (x2 == max_x - 1) {
@@ -329,25 +377,25 @@ bool ofxWFC3D::Propagate()
                         else x1 = x2 + 1;
                     }
                     else if (d == 3) { // v
-                        if (y2 == 0) {
-                            if (!periodic) continue;
-                            else y1 = max_y - 1;
-                        }
-                        else y1 = y2 - 1;
-                    }
-                    else if (d == 4) { // z>
-                        if (z2 == max_z - 1) {
-                            if (!periodic) continue;
-                            else z1 = 0;
-                        }
-                        else z1 = z2 + 1;
-                    }
-                    else { // <z
                         if (z2 == 0) {
                             if (!periodic) continue;
                             else z1 = max_z - 1;
                         }
                         else z1 = z2 - 1;
+                    }
+                    else if (d == 4) { // z>
+                        if (y2 == max_y - 1) {
+                            if (!periodic) continue;
+                            else y1 = 0;
+                        }
+                        else y1 = y2 + 1;
+                    }
+                    else { // <z
+                        if (y2 == 0) {
+                            if (!periodic) continue;
+                            else y1 = max_y - 1;
+                        }
+                        else y1 = y2 - 1;
                     } // end periodic check
 
 
@@ -406,14 +454,15 @@ void ofxWFC3D::Clear()
     if (ground >= 0) {
 
         for (size_t x = 0 ; x < max_x; x++) {
-            for (size_t y = 0 ; y < max_y; y++) {
+            for (size_t z = 0 ; z < max_z; z++) {
 
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (t != ground) wave[x][y][max_z - 1][t] = false;
+                    if (t != ground) wave[x][0][z][t] = false;
                 }
-                changes[x][y][max_z - 1] = true;
+                changes[x][0][z] = true;
 
-                for (size_t z = 0; z < max_z - 1; z++) {
+                //for (size_t z = 0; z < max_z - 1; z++) {
+                for (size_t y = 1; y < max_y; y++) {
                     wave[x][y][z][ground] = false;
                     changes[x][y][z] = true;
                 }
