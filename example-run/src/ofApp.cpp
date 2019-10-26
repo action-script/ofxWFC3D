@@ -59,12 +59,12 @@ void ofApp::draw(){
     //ofBackground(20);
 
     cam.begin();
-
     ofEnableDepthTest();
+
     ofDrawGrid(1.0, 10, false, false, true, false);
     ofDrawAxis(10);
 
-    ofSetColor(100, 100, 255);
+    ofSetColor(50, 50, 200);
     container.drawWireframe();
 
     material.begin();
@@ -79,14 +79,14 @@ void ofApp::draw(){
         }
     }
 
-
     light.disable();
     material.end();
-
     cam.end();
 
-    ofDrawBitmapStringHighlight("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
+    ofDisableDepthTest();
+    ofDisableLighting();
     gui.draw();
+    ofDrawBitmapStringHighlight("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
 }
 
 //--------------------------------------------------------------

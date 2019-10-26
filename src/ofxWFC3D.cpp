@@ -1,4 +1,7 @@
 #include "ofxWFC3D.h"
+// TODO: split setup - generate logic.
+// TODO: Preset tiles.
+// TODO: output and render logic
 
 size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one);
 
@@ -82,7 +85,6 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         num_patterns = action.size();
 		first_occurrence[tile_name] = num_patterns;
 
-        //TODO: set ground and other tiles
         if (tile_name == ground_name) ground_id = num_patterns;
         if (tile_name == surround_name) surround_id = num_patterns;
 
@@ -107,15 +109,6 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
 			action.push_back(map);
 		}
-
-        /*
-         *for (auto& a : action) {
-         *    for (auto& b :a) {
-         *        ofLog() << " " << b;
-         *    }
-         *    ofLog() << "-";
-         *}
-         */
 
         // TODO: unique
         // TODO: tiles / voxels/ ofnodes?
@@ -435,7 +428,6 @@ void ofxWFC3D::Clear()
         }
     }
 
-    // TODO: surround logic. x - border.
     if (surround_id >= 0) {
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
