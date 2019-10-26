@@ -2,7 +2,6 @@
 
 #include "ofMain.h"
 #include "ofxWFC3D.h"
-#include "ofxAssimpModelLoader.h"
 #include "ofxGui.h"
 
 class ofApp : public ofBaseApp{
@@ -36,16 +35,13 @@ class ofApp : public ofBaseApp{
         ofNode worldNode;
         std::unordered_map<std::string, ofMesh*> tiles;
         std::vector< std::unordered_map<std::string, ofNode> > nodes;
-
+        float vs = 3.0; // voxel size
 
         // WFC
         ofxWFC3D wfc;
-		
 
         // gui
         ofxPanel gui;
-        ofxFloatSlider slider_1, slider_2;
-
-        int x = 8, y = 4, z = 6;
-        float vs = 3.0; // voxel size
+        ofParameterGroup structure_group;
+        ofParameter<float> bound_width, bound_height, bound_length;
 };

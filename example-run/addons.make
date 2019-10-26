@@ -1,3 +1,2 @@
 ofxWFC3D
-ofxAssimpModelLoader
 ofxGui

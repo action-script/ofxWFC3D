@@ -1,27 +1,24 @@
 #include "ofApp.h"
-// Y Up
-// Z forward
 
-//--------------------------------------------------------------
 void ofApp::setup(){
-    ofSetVerticalSync(true);
+    //ofSetVerticalSync(true);
+
+    // SCENE
     cam.setDistance(20);
     cam.setNearClip(0.1);
 
-    material.setDiffuseColor(ofFloatColor::green);
+    material.setDiffuseColor( ofColor(220, 220, 220) );
     light.move(2,-5,-1);
     light.lookAt(ofVec3f(0.0,0.0,0.0));
     light.setDirectional();
-	light.setDiffuseColor(ofFloatColor::yellow);
+	light.setDiffuseColor( ofColor(240, 240, 200) );
+    light.setAmbientColor( ofColor(50,50,110) );
     light.setup();
 
-    container.set(x, y, z);
-    container.setScale(1.0f);
-    container.setPosition(0, y/2.0f, 0);
-
-    // models
-    float m_scale = 2/1000.0;
-    float m_s_scale = m_scale * (1-1/3.0);
+    // MODELS
+    // model made on blender and exported as ply 
+    // Y Up
+    // Z forward
     m_down.load("down.ply");
     m_line.load("line.ply");
     m_turn.load("turn.ply");
@@ -41,14 +38,20 @@ void ofApp::setup(){
     worldNode.setOrientation(glm::angleAxis(ofDegToRad(0.f), glm::vec3{1.f, 0.f, 0.f}));
 
 
-    gui.setup();
-    gui.add(slider_1.setup("up", 0, 0, 360));
-    gui.add(slider_2.setup("down", 0, 0, 360));
+    // GUI
+    structure_group.add( bound_width.set("bounding width", 5, 1, 20 ));
+    structure_group.add( bound_height.set("bounding height", 3, 1, 20 ));
+    structure_group.add( bound_length.set("bounding length", 5, 1, 20 ));
+    gui.setup(structure_group);
 
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
+    int x = bound_width, y = bound_height, z = bound_length;
+    container.set(x, y, z);
+    container.setScale(1.0f);
+    container.setPosition(0, y/2.0f, 0);
 }
 
 //--------------------------------------------------------------
@@ -82,22 +85,17 @@ void ofApp::draw(){
 
     cam.end();
 
-    ofSetColor(255,255,255);
     ofDrawBitmapStringHighlight("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
     gui.draw();
-
-
-    //m_turn.setRotation(1, slider_1, 0.0, 1.0, 0.0);
-    //m_line.setRotation(1, slider_2, 0.0, 1.0, 0.0);
-    //m_up.setRotation(1, slider_1, 0.0, 1.0, 0.0);
-    //m_down.setRotation(1, slider_2, 0.0, 1.0, 0.0);
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
     if (key == 32) {
-        // config_name, subset, x, y, z, periodic, ground
-        wfc.SetUp("data.xml", "default", x, y, z, false, "none", "empty");
+        int x = bound_width, y = bound_height, z = bound_length;
+
+        // config_name, subset, x, y, z, periodic, ground, surround
+        wfc.SetUp("data.xml", "default", x+2, y, z+2, false, "", "empty");
         //wfc.SetUp("data.xml", "default", x, y, z, false, "vertical");
         //wfc.SetUp("data.xml", "only turns", x, y, z, false, "none");
         //wfc.SetUp("data.xml", "vertical", x, y, z, false, "none");
@@ -149,6 +147,7 @@ void ofApp::keyPressed(int key){
         }
 
         worldNode.setPosition(-x*vs/2.0/3.0, 0, -z*vs/2.0/3.0);
+        worldNode.move(-1.0,0,-1.0); // surround offset
         worldNode.move(-0.5,-0.5,-0.5);
         worldNode.setScale(1/3.0);
 
