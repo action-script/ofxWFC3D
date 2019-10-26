@@ -4,7 +4,7 @@ size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one)
 
 // ------------------
 
-void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name, std::string empty_name)
+void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name, std::string surround_name)
 {
     //initialize members
     this->max_x = max_x;
@@ -13,7 +13,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
     this->periodic = periodic;
 
     ground_id = -1;
-    empty_id = -1;
+    surround_id = -1;
 
 
     //std::cout << "config path: " << config_file << std::endl;
@@ -84,7 +84,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
         //TODO: set ground and other tiles
         if (tile_name == ground_name) ground_id = num_patterns;
-        if (tile_name == empty_name) empty_id = num_patterns;
+        if (tile_name == surround_name) surround_id = num_patterns;
 
         for (int t = 0; t < cardinality; ++t) {
             std::array<int, 8> map;
@@ -436,12 +436,12 @@ void ofxWFC3D::Clear()
     }
 
     // TODO: surround logic. x - border.
-    if (empty_id >= 0) {
+    if (surround_id >= 0) {
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
 
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (t != empty_id) {
+                    if (t != surround_id) {
                         wave[0][y][z][t] = false;
                         wave[max_x-1][y][z][t] = false;
                     }
@@ -452,7 +452,7 @@ void ofxWFC3D::Clear()
 
             for (size_t x = 0 ; x < max_x; x++) {
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (t != empty_id) {
+                    if (t != surround_id) {
                         wave[x][y][0][t] = false;
                         wave[x][y][max_z-1][t] = false;
                     }
