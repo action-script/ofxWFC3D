@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include <regex>
 
 /*
  * Implementation based on 
@@ -15,14 +16,34 @@ enum class Status {
     ObsUnfinished,
 };
 
+struct InstancedTile {
+    size_t t;
+    size_t x;
+    size_t y;
+    size_t z;
+};
+
 class ofxWFC3D {
 public:
     ofxWFC3D() {}
-    void SetUp(std::string name, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic=false, std::string ground_name = "", std::string surround_name = "");
+    void SetUp(
+            std::string name, std::string subset_name,
+            size_t max_x, size_t max_y, size_t max_z,
+            bool periodic=false,
+            std::string ground_name = "",
+            std::string surround_name = ""
+    );
     bool Run(int seed);
+    bool SetTile(std::string tile_name, size_t x, size_t y, size_t z);
+    bool SetTile(std::string tile_name, ofVec3f position) {
+        return this->SetTile(tile_name, position.x, position.y, position.z);
+    };
     std::string TextOutput();
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > TileOutput();
-    std::vector< std::pair<std::string, ofNode> > NodeTileOutput(ofNode& parent_node, ofVec3f grid_size, std::vector<std::string> ignore = {""});
+    std::vector< std::pair<std::string, ofNode> > NodeTileOutput(
+            ofNode& parent_node, ofVec3f grid_size,
+            std::vector<std::string> ignore = {""}
+    );
 
 protected:
     Status Observe();
@@ -43,6 +64,8 @@ private:
     std::vector< std::vector< std::vector<bool> > > propagator;             // bool [][][]
     std::vector<double> pattern_weight;
     std::vector<std::string> tile_data;
+
+    std::vector<InstancedTile> instanced_tiles;
 
     std::vector<double> log_prob;
 	double log_T;

@@ -104,8 +104,6 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 			action.push_back(map);
 		}
 
-        // TODO: unique
-        // TODO: tiles / voxels/ ofnodes?
         tile_data.push_back(tile_name+" 0");
         for (int t = 1; t < cardinality; t++) {
             tile_data.push_back(tile_name + (" " + ofToString(t)));
@@ -198,6 +196,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     } // end neighbors
 
+    this->instanced_tiles.clear();
 
     //ofLog() << "Initialize Done";
 }
@@ -450,6 +449,32 @@ void ofxWFC3D::Clear()
         }
     }
 
+    for (auto& instanced : instanced_tiles) {
+        for (size_t t = 0; t < num_patterns; t++) {
+            if (t != instanced.t) wave[instanced.x][instanced.y][instanced.z][t] = false;
+        }
+        wave[instanced.x][instanced.y][instanced.z][instanced.t] = true;
+        changes[instanced.x][instanced.y][instanced.z] = true;
+    }
+}
+
+bool ofxWFC3D::SetTile(std::string tile_name, size_t x, size_t y, size_t z)
+{
+    if (std::regex_match (tile_name, std::regex("([_[:alnum:]]*)", std::regex::ECMAScript) ))
+        tile_name += " 0";
+
+    bool found = false;
+
+    if (x < max_x && y < max_y && z < max_z && x >= 0 && y >= 0 && z >= 0) {
+        for (int i = 0; i < tile_data.size(); i++) {
+            if (tile_data[i] == tile_name) {
+                instanced_tiles.push_back({i, x, y ,z});
+                break;
+            }
+        }
+    }
+
+    return found;
 }
 
 bool ofxWFC3D::Run(int seed)
@@ -476,8 +501,7 @@ bool ofxWFC3D::Run(int seed)
 
 std::string ofxWFC3D::TextOutput()
 {
-    std::string result = "mama";
-
+    std::string result = "";
     for (size_t x = 0 ; x < max_x; x++) {
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
