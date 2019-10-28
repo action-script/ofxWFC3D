@@ -71,12 +71,10 @@ void ofApp::draw(){
     light.enable();
 
     for (auto& node : nodes) {
-        for (auto& k : node) {
-            auto key = k.first;
-            node[key].transformGL();
-            tiles[key]->draw();
-            node[key].restoreTransformGL();
-        }
+        auto key = node.first;
+        node.second.transformGL();
+        tiles[key]->draw();
+        node.second.restoreTransformGL();
     }
 
     light.disable();
@@ -94,62 +92,39 @@ void ofApp::keyPressed(int key){
     if (key == 32) {
         int x = bound_width, y = bound_height, z = bound_length;
 
+        double micro_factot = 0.000001;
+
+        uint64_t t1 = ofGetSystemTimeMicros();
         // config_name, subset, x, y, z, periodic, ground, surround
         wfc.SetUp("data.xml", "default", x+2, y, z+2, false, "", "empty");
         //wfc.SetUp("data.xml", "default", x, y, z, false, "vertical");
         //wfc.SetUp("data.xml", "only turns", x, y, z, false, "none");
         //wfc.SetUp("data.xml", "vertical", x, y, z, false, "none");
+        int64_t t2 = ofGetSystemTimeMicros();
+        ofLog() << "SetUp time in micros = " << (t2-t1);
+        
 
-
-        std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > tiles_wfc;
-
+        uint64_t t3 = ofGetSystemTimeMicros();
         int limit = 8, seed = (int)ofRandom(1000);
         for (int k = 0; k < limit; k++) {
             bool result = wfc.Run(seed++);
 
             if (result) {
                 ofLog() << "WFC success";
-                //std::string map_text = wfc.TextOutput();
-                //ofLog() << map_text;
 
-                tiles_wfc = wfc.TileOutput();
+                // process tiles and convert to ofNode tree
+                nodes = wfc.NodeTileOutput(worldNode, ofVec3f(vs,vs,vs), {"empty"});
                 break;
             } else {
                 ofLog() << "WFC failure";
             }
         }
+        int64_t t4 = ofGetSystemTimeMicros();
+        ofLog() << "Run time in micros = " << (t4-t3);
 
-        // process tiles and convert to ofNode tree
-        int ix = 0, iy = 0, iz = 0;
-        nodes.clear();
-        for (auto& tx : tiles_wfc) {
-            ix++;
-            for (auto& ty : tx) {
-                iy++;
-                for (auto& tz : ty) {
-                    iz++;
-                    for (auto& key: tz) {
-                        if (key.first != "empty") {
-                            std::unordered_map<std::string, ofNode> nmap;
-                            ofNode cardinality;
-
-                            cardinality.setParent(worldNode);
-                            cardinality.setPosition(ix*vs, iy*vs, iz*vs);
-                            cardinality.rotateDeg(tz[key.first]*90.0f, ofVec3f(0.0, 1.0, 0.0));
-                            nmap[key.first] = cardinality;
-                            nodes.push_back(nmap);
-                        }
-                    }
-                }
-                iz = 0;
-            }
-            iy = 0;
-        }
-
-        worldNode.setPosition(-x*vs/2.0/3.0, 0, -z*vs/2.0/3.0);
-        worldNode.move(-1.0,0,-1.0); // surround offset
-        worldNode.move(-0.5,-0.5,-0.5);
-        worldNode.setScale(1/3.0);
+        worldNode.setPosition(-x/2.0, 0, -z/2.0);
+        worldNode.move(-0.5,0.5,-0.5);
+        worldNode.setScale(1/vs);
 
     }
 }

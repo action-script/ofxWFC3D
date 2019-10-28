@@ -34,7 +34,7 @@ class ofApp : public ofBaseApp{
         ofMesh m_down, m_line, m_turn, m_up, m_vertical, m_cube, m_totem;
         ofNode worldNode;
         std::unordered_map<std::string, ofMesh*> tiles;
-        std::vector< std::unordered_map<std::string, ofNode> > nodes;
+        std::vector< std::pair<std::string, ofNode> > nodes;
         float vs = 3.0; // voxel size
 
         // WFC

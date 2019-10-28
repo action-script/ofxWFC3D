@@ -1,7 +1,4 @@
 #include "ofxWFC3D.h"
-// TODO: split setup - generate logic.
-// TODO: Preset tiles.
-// TODO: output and render logic
 
 size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one);
 
@@ -19,13 +16,10 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
     surround_id = -1;
 
 
-    //std::cout << "config path: " << config_file << std::endl;
     if ( !xml.load(config_file) ) {
         ofLogError() << "Couldn't load WFC configuration file";
     }
-    //std::cout << "xml" << xml.toString() << std::endl;
     auto xmln_set = xml.getChild("set");
-
 
     std::vector<std::string> subset;
 
@@ -498,7 +492,9 @@ std::string ofxWFC3D::TextOutput()
     
     return result;
 }
-std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > ofxWFC3D::TileOutput() {
+
+std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > ofxWFC3D::TileOutput()
+{
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > tiles;
     tiles.resize(max_x);
     for (size_t x = 0 ; x < max_x; x++) {
@@ -517,6 +513,33 @@ std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >>
     return tiles;
 }
 
+std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& parent_node, ofVec3f grid_size, std::vector<std::string> ignore)
+{
+    ofVec3f axis_y = ofVec3f(0.0, 1.0, 0.0);
+    std::vector< std::pair<std::string, ofNode> > tiles;
+    for (size_t x = 0 ; x < max_x; x++) {
+        for (size_t y = 0 ; y < max_y; y++) {
+            for (size_t z = 0 ; z < max_z; z++) {
+
+                auto tile_cardinality = ofSplitString(tile_data[observed[x][y][z]], " ", true);
+                if ( ofContains(ignore, tile_cardinality[0]) ) continue;
+
+
+                ofNode tile_node;
+                tile_node.setParent(parent_node);
+                tile_node.setPosition(x*grid_size.x, y*grid_size.y, z*grid_size.z);
+                tile_node.rotateDeg(ofToInt( tile_cardinality[1])*90.0f, axis_y );
+
+                std::pair<std::string, ofNode> tile = std::make_pair(tile_cardinality[0], tile_node);
+
+                tiles.push_back(tile);
+
+            }
+        }
+    }
+
+    return tiles;
+}
 
 size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one)
 {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include "ofMain.h"
 
 /*
@@ -23,6 +22,7 @@ public:
     bool Run(int seed);
     std::string TextOutput();
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > TileOutput();
+    std::vector< std::pair<std::string, ofNode> > NodeTileOutput(ofNode& parent_node, ofVec3f grid_size, std::vector<std::string> ignore = {""});
 
 protected:
     Status Observe();

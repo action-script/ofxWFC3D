@@ -1,4 +1,4 @@
-<set pixelsize="9" voxelsize="3">
+<set>
 	<tiles>
 		<tile name="down" symmetry="T"/>
 		<tile name="empty" symmetry="X"/>
@@ -95,19 +95,19 @@
 	</neighbors>
 	<subsets>
 		<subset name="dense knots">
-			<tile name="down" symmetry="T"/>
-			<tile name="line" symmetry="I"/>
-			<tile name="turn" symmetry="L"/>
-			<tile name="up" symmetry="T"/>
-			<tile name="vertical" symmetry="X"/>
+			<tile name="down"/>
+			<tile name="line"/>
+			<tile name="turn"/>
+			<tile name="up"/>
+			<tile name="vertical"/>
 		</subset>
 		<subset name="only turns">
-			<tile name="turn" symmetry="L"/>
-			<tile name="line" symmetry="I"/>
+			<tile name="turn"/>
+			<tile name="line"/>
 		</subset>
 		<subset name="vertical">
-            <tile name="up" symmetry="T"/>
-            <tile name="down" symmetry="T"/>
+            <tile name="up"/>
+            <tile name="down"/>
 		</subset>
 	</subsets>
 </set>
