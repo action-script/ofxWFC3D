@@ -1,0 +1,36 @@
+<set>
+	<tiles>
+		<tile name="empty" symmetry="X"/>
+		<tile name="line" symmetry="T"/>
+		<tile name="end_l" symmetry="T"/>
+		<tile name="end_r" symmetry="T"/>
+	</tiles>
+	<neighbors>
+		<!--<horizontal left="end_l" right="end_r"/>-->
+		<!--<horizontal left="end_l" right="line"/>-->
+		<!--<horizontal left="end_l 1" right="empty"/>-->
+		<!--<horizontal left="line" right="line"/>-->
+		<!--<horizontal left="line" right="end_r"/>-->
+		<!--<horizontal left="line 1" right="empty"/>-->
+		<!--<horizontal left="empty" right="end_l"/>-->
+		<!--<horizontal left="end_r" right="empty"/>-->
+		<!--<horizontal left="end_r 1" right="empty"/>-->
+		<!--<horizontal left="end_r 1" right="line 1"/>-->
+		<!--<horizontal left="end_r 1" right="end_l 1"/>-->
+
+		<!--<horizontal left="empty" right="empty"/>-->
+
+		<!--<horizontal left="end_l" right="end_r"/>-->
+		<horizontal left="end_l" right="line"/>
+
+		<horizontal left="line" right="line"/>
+		<horizontal left="line" right="end_r"/>
+		<horizontal left="line 1" right="line 1"/>
+        <horizontal left="end_r 1" right="end_r 1"/>
+        <horizontal left="end_l 1" right="end_l 1"/>
+        <horizontal left="end_r" right="end_l"/>
+
+	</neighbors>
+	<subsets>
+	</subsets>
+</set>
