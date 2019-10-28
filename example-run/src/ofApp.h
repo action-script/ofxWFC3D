@@ -21,7 +21,7 @@ class ofApp : public ofBaseApp{
         ofLight light;
 
         // models
-        ofNode worldNode;
+        ofNode world_node;
         ofMesh m_down, m_line, m_turn, m_up, m_vertical;
         std::unordered_map<std::string, ofMesh*> tiles;
         std::vector< std::pair<std::string, ofNode> > nodes;

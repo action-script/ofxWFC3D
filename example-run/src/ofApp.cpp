@@ -32,7 +32,7 @@ void ofApp::setup(){
     tiles["up"] = &m_up;
     tiles["vertical"] = &m_vertical;
 
-    worldNode.setOrientation(glm::angleAxis(ofDegToRad(0.f), glm::vec3{1.f, 0.f, 0.f}));
+    world_node.setOrientation(glm::angleAxis(ofDegToRad(0.f), glm::vec3{1.f, 0.f, 0.f}));
 
 
     // GUI
@@ -103,16 +103,16 @@ void ofApp::keyPressed(int key){
                 ofLog() << "WFC success";
 
                 // process tiles and convert to ofNode tree
-                nodes = wfc.NodeTileOutput(worldNode, ofVec3f(vs,vs,vs), {"empty"});
+                nodes = wfc.NodeTileOutput(world_node, ofVec3f(vs,vs,vs), {"empty"});
                 break;
             } else {
                 ofLog() << "WFC failure";
             }
         }
 
-        worldNode.setPosition(-x/2.0, 0, -z/2.0);
-        worldNode.move(0.5,0.5,0.5);
-        worldNode.setScale(1/vs);
+        world_node.setPosition(-x/2.0, 0, -z/2.0);
+        world_node.move(0.5,0.5,0.5);
+        world_node.setScale(1/vs);
 
     }
 }
