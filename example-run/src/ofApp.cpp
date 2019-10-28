@@ -11,8 +11,8 @@ void ofApp::setup(){
     light.move(2,-5,-1);
     light.lookAt(ofVec3f(0.0,0.0,0.0));
     light.setDirectional();
-	light.setDiffuseColor( ofColor(240, 240, 200) );
-    light.setAmbientColor( ofColor(50,50,110) );
+	light.setDiffuseColor( ofColor(240, 240, 210) );
+    light.setAmbientColor( ofColor(60,50,90) );
     light.setup();
 
     // MODELS
@@ -24,12 +24,9 @@ void ofApp::setup(){
     m_turn.load("turn.ply");
     m_up.load("up.ply");
     m_vertical.load("vertical.ply");
-    m_cube.load("cube.ply");
-    m_totem.load("totem.ply");
 
     // set tile-name mapping
     tiles["down"] = &m_down;
-    tiles["empty"] = &m_down;
     tiles["line"] = &m_line;
     tiles["turn"] = &m_turn;
     tiles["up"] = &m_up;
@@ -39,11 +36,10 @@ void ofApp::setup(){
 
 
     // GUI
-    structure_group.add( bound_width.set("bounding width", 5, 1, 20 ));
-    structure_group.add( bound_height.set("bounding height", 3, 1, 20 ));
-    structure_group.add( bound_length.set("bounding length", 5, 1, 20 ));
+    structure_group.add( bound_width.set("bounding width", 8, 1, 20 ));
+    structure_group.add( bound_height.set("bounding height", 4, 1, 20 ));
+    structure_group.add( bound_length.set("bounding length", 8, 1, 20 ));
     gui.setup(structure_group);
-
 }
 
 //--------------------------------------------------------------
@@ -56,8 +52,6 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    //ofBackground(20);
-
     cam.begin();
     ofEnableDepthTest();
 
@@ -67,6 +61,7 @@ void ofApp::draw(){
     ofSetColor(50, 50, 200);
     container.drawWireframe();
 
+    // draw tiles
     material.begin();
     light.enable();
 
@@ -85,6 +80,9 @@ void ofApp::draw(){
     ofDisableLighting();
     gui.draw();
     ofDrawBitmapStringHighlight("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
+
+    ofSetColor(255);
+    ofDrawBitmapString("PRESS SPACEBAR TO GENERATE A NEW STRUCTURE", 20, ofGetHeight() - 40);
 }
 
 //--------------------------------------------------------------
@@ -92,19 +90,11 @@ void ofApp::keyPressed(int key){
     if (key == 32) {
         int x = bound_width, y = bound_height, z = bound_length;
 
-        double micro_factot = 0.000001;
 
-        uint64_t t1 = ofGetSystemTimeMicros();
-        // config_name, subset, x, y, z, periodic, ground, surround
-        wfc.SetUp("data.xml", "default", x+2, y, z+2, false, "", "empty");
-        //wfc.SetUp("data.xml", "default", x, y, z, false, "vertical");
-        //wfc.SetUp("data.xml", "only turns", x, y, z, false, "none");
-        //wfc.SetUp("data.xml", "vertical", x, y, z, false, "none");
-        int64_t t2 = ofGetSystemTimeMicros();
-        ofLog() << "SetUp time in micros = " << (t2-t1);
+        // config_name, subset, x, y, z, periodic=false, ground="", surround=false
+        wfc.SetUp("data.xml", "default", x, y, z);
         
 
-        uint64_t t3 = ofGetSystemTimeMicros();
         int limit = 8, seed = (int)ofRandom(1000);
         for (int k = 0; k < limit; k++) {
             bool result = wfc.Run(seed++);
@@ -119,62 +109,11 @@ void ofApp::keyPressed(int key){
                 ofLog() << "WFC failure";
             }
         }
-        int64_t t4 = ofGetSystemTimeMicros();
-        ofLog() << "Run time in micros = " << (t4-t3);
 
         worldNode.setPosition(-x/2.0, 0, -z/2.0);
-        worldNode.move(-0.5,0.5,-0.5);
+        worldNode.move(0.5,0.5,0.5);
         worldNode.setScale(1/vs);
 
     }
 }
 
-//--------------------------------------------------------------
-void ofApp::keyReleased(int key){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseMoved(int x, int y ){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseReleased(int x, int y, int button){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseEntered(int x, int y){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseExited(int x, int y){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::windowResized(int w, int h){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::gotMessage(ofMessage msg){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::dragEvent(ofDragInfo dragInfo){ 
-
-}

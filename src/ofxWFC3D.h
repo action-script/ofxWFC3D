@@ -18,7 +18,7 @@ enum class Status {
 class ofxWFC3D {
 public:
     ofxWFC3D() {}
-    void SetUp(std::string name, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic, std::string ground_name = "", std::string surround_name = "");
+    void SetUp(std::string name, std::string subset_name, size_t max_x, size_t max_y, size_t max_z, bool periodic=false, std::string ground_name = "", std::string surround_name = "");
     bool Run(int seed);
     std::string TextOutput();
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > TileOutput();
@@ -42,9 +42,7 @@ private:
 
     std::vector< std::vector< std::vector<bool> > > propagator;             // bool [][][]
     std::vector<double> pattern_weight;
-
     std::vector<std::string> tile_data;
-
 
     std::vector<double> log_prob;
 	double log_T;
