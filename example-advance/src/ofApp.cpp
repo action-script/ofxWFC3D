@@ -49,11 +49,13 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+    auto render = ofGetCurrentRenderer();
     cam.begin();
     ofEnableDepthTest();
 
     ofDrawGrid(1.0, 10, false, false, true, false);
     ofDrawAxis(10);
+
 
     ofSetColor(50, 50, 200);
     container.drawWireframe();
@@ -69,8 +71,15 @@ void ofApp::draw(){
         material.begin();
         node.second.transformGL();
         tiles[key]->draw();
-        node.second.restoreTransformGL();
         material.end();
+        ofSetColor(255);
+        int ri = int(node.second.getOrientationEulerRad().y+2.0);
+        if (ri == 0) ri = 3;
+        else if (ri == 1) ri = 2;
+        else if (ri == 2) ri = 0;
+        else if (ri == 3) ri = 1;
+        render->drawString(ofToString(ri), 0, 0.5, 0);
+        node.second.restoreTransformGL();
     }
 
     light.disable();
@@ -82,7 +91,7 @@ void ofApp::draw(){
     ofDrawBitmapStringHighlight("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
 
     ofSetColor(255);
-    ofDrawBitmapString("PRESS SPACEBAR TO GENERATE A NEW STRUCTURE", 20, ofGetHeight() - 40);
+    //ofDrawBitmapString("PRESS SPACEBAR TO GENERATE A NEW STRUCTURE", 20, ofGetHeight() - 40);
 }
 
 //--------------------------------------------------------------
@@ -92,7 +101,7 @@ void ofApp::keyPressed(int key){
 
 
         // config_name, subset, x, y, z, periodic=false, ground="", surround=false
-        wfc.SetUp("data.xml", "default", x, y, z);
+        wfc.SetUp("data.xml", "default", x, y, z, false, "", "empty");
 
         // instanciate an specific tile on the WFC
         //for (int ix = 1; ix < x-1; ix++)
