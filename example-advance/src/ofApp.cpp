@@ -22,11 +22,13 @@ void ofApp::setup(){
     m_line.load("line.ply");
     m_end_l.load("end_l.ply");
     m_end_r.load("end_r.ply");
+    m_turn.load("turn.ply");
 
     // set tile-name mapping
     tiles["line"] = &m_line;
     tiles["end_l"] = &m_end_l;
     tiles["end_r"] = &m_end_r;
+    tiles["turn"] = &m_turn;
 
     world_node.setOrientation(glm::angleAxis(ofDegToRad(0.f), glm::vec3{1.f, 0.f, 0.f}));
 
@@ -68,6 +70,7 @@ void ofApp::draw(){
         if (key == "line") material.setDiffuseColor( ofColor(220, 100, 100) );
         if (key == "end_l") material.setDiffuseColor( ofColor(100, 220, 100) );
         if (key == "end_r") material.setDiffuseColor( ofColor(100, 100, 220) );
+        if (key == "turn") material.setDiffuseColor( ofColor(100, 220, 220) );
         material.begin();
         node.second.transformGL();
         tiles[key]->draw();
