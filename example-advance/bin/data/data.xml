@@ -4,7 +4,7 @@
 		<tile name="line" symmetry="T" weight="0.5"/>
 		<tile name="end_l" symmetry="T" weight="2.0"/>
 		<tile name="end_r" symmetry="T" weight="2.0"/>
-		<tile name="turn" symmetry="T" width="3.0"/>
+		<tile name="turn" symmetry="+" width="3.0"/>
 	</tiles>
 	<neighbors>
         <horizontal left="line" right="empty"/>
@@ -21,9 +21,10 @@
         <horizontal left="end_l" right="end_r 3"/>
 
         <horizontal left="empty" right="turn"/>
+        <horizontal left="empty" right="turn 3"/>
         <horizontal left="turn" right="line 1"/>
         <horizontal left="turn 3" right="line 3"/>
-        <horizontal left="turn 1" right="empty"/>
+        <!--<horizontal left="turn 1" right="empty"/>-->
         <!--<horizontal left="line 3" right="turn 2"/>-->
         <!--<horizontal left="line 1" right="turn 1"/>-->
         <!--<horizontal left="turn 3" right="line 3"/>-->

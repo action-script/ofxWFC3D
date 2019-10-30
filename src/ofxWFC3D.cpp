@@ -37,6 +37,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
 	std::vector<std::array<int, 8>> action;
 	std::unordered_map<std::string, size_t> first_occurrence;
+	std::vector<int> no_symmetry;
 
     auto xmln_tiles = xmln_set.getChild("tiles");
 
@@ -60,6 +61,12 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
             cardinality = 4;
             a = [](int i){ return (i + 1) % 4; };
             b = [](int i){ return i % 2 == 0 ? i : 4 - i; };
+        } else if (sym == "+") {
+            cardinality = 4;
+            a = [](int i){ return (i + 1) % 4; };
+            //b = [](int i){ return (i + 2) % 4; };
+            b = [](int i){ return i; };
+            no_symmetry.push_back(action.size());
         } else if (sym == "I") {
             cardinality = 2;
             a = [](int i){ return 1 - i; };
@@ -161,8 +168,13 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
         int L = action[first_occurrence[left[0]]] [ofToInt(left[1])];
 		int R = action[first_occurrence[right[0]]][ofToInt(right[1])];
-		int D = action[L][1];
+		int D = action[L][1]; // turn +1 = 90 anticlockwise 
 		int U = action[R][1];
+
+        // allow + tiles to work without symmetry
+        bool symmetry = true;
+        for (auto& s : no_symmetry)
+            if (s == first_occurrence[left[0]] || s == first_occurrence[right[0]]) symmetry = false;
 
         // coord and axis replacement for xyz | x+ yUp zForward
         // 0 -> 0
@@ -174,13 +186,17 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
         if (neighbor_type == "horizontal") {
             propagator[0][R][L] = true;
-            propagator[0][action[R][6]][action[L][6]] = true;
-            propagator[0][action[L][4]][action[R][4]] = true;
+            if (symmetry) {
+                propagator[0][action[R][6]][action[L][6]] = true;
+                propagator[0][action[L][4]][action[R][4]] = true;
+            }
             propagator[0][action[L][2]][action[R][2]] = true;
 
             propagator[4][U][D] = true;
-            propagator[4][action[D][6]][action[U][6]] = true;
-            propagator[4][action[U][4]][action[D][4]] = true;
+            if (symmetry) {
+                propagator[4][action[D][6]][action[U][6]] = true;
+                propagator[4][action[U][4]][action[D][4]] = true;
+            }
             propagator[4][action[D][2]][action[U][2]] = true;
         } else {
             for (int g = 0; g < 8; g++) propagator[1][action[L][g]][action[R][g]] = true;
