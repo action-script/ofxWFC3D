@@ -63,6 +63,7 @@ private:
 
     std::vector< std::vector< std::vector<bool> > > propagator;             // bool [][][]
     std::vector<double> pattern_weight;
+    std::vector< std::pair<size_t, size_t> > height_range;
     std::vector<std::string> tile_data;
 
     std::vector<InstancedTile> instanced_tiles;

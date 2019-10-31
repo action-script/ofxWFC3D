@@ -15,6 +15,10 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
     ground_id = -1;
     surround_id = -1;
 
+    this->pattern_weight.clear();
+    this->height_range.clear();
+    this->tile_data.clear();
+    this->instanced_tiles.clear();
 
     if ( !xml.load(config_file) ) {
         ofLogError() << "Couldn't load WFC configuration file";
@@ -123,6 +127,15 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 		    pattern_weight.push_back(tile_weight);
 		}
 
+        // height range
+        auto xmla_minheight = xmln_tile.getAttribute("min-height"); 
+        auto xmla_maxheight = xmln_tile.getAttribute("max-height");
+        size_t tile_minheight = xmla_minheight.getValue() == "" ? 0 : xmla_minheight.getIntValue();
+        size_t tile_maxheight = xmla_maxheight.getValue() == "" ? this->max_z : xmla_maxheight.getIntValue();
+        for(int t = 0; t < cardinality; t++) {
+            height_range.push_back({tile_minheight, tile_maxheight});
+        }
+
     } // end tiles
 
 
@@ -208,7 +221,6 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     } // end neighbors
 
-    this->instanced_tiles.clear();
 
     //ofLog() << "Initialize Done";
 }
@@ -407,9 +419,20 @@ void ofxWFC3D::Clear()
     for (size_t x = 0 ; x < max_x; x++) {
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
-                for (size_t t = 0; t < num_patterns; t++)
-                    wave[x][y][z][t] = true;
+
                 changes[x][y][z] = false;
+                for (size_t t = 0; t < num_patterns; t++) {
+                    int h_min = height_range[t].first;
+                    int h_max = height_range[t].second;
+
+                    if (h_min <= y && h_max >= y) {
+                        wave[x][y][z][t] = true;
+                        changes[x][y][z] = true;
+                    } else {
+                        wave[x][y][z][t] = false;
+                    }
+                }
+
             }
         }
     }
