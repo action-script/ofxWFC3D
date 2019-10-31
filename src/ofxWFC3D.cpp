@@ -503,7 +503,7 @@ bool ofxWFC3D::SetTile(std::string tile_name, size_t x, size_t y, size_t z)
     if (x < max_x && y < max_y && z < max_z && x >= 0 && y >= 0 && z >= 0) {
         for (int i = 0; i < tile_data.size(); i++) {
             if (tile_data[i] == tile_name) {
-                instanced_tiles.push_back({i, x, y ,z});
+                instanced_tiles.push_back({static_cast<size_t>(i), x, y ,z});
                 break;
             }
         }
