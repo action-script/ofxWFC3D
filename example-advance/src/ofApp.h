@@ -22,7 +22,7 @@ class ofApp : public ofBaseApp{
 
         // models
         ofNode world_node;
-        ofMesh m_line, m_end_l, m_end_r, m_turn;
+        ofMesh m_line, m_end_l, m_end_r, m_turn, m_base_line, m_base_end_l, m_base_end_r;
         std::unordered_map<std::string, ofMesh*> tiles;
         std::vector< std::pair<std::string, ofNode> > nodes;
         float vs = 2.0; // model size (2m)

@@ -1,10 +1,13 @@
 <set>
 	<tiles>
 		<tile name="empty" symmetry="X"/>
-		<tile name="line" symmetry="T"/>
-        <tile name="end_l" symmetry="T" weight="0.2"/>
-		<tile name="end_r" symmetry="T"/>
+		<tile name="line" symmetry="T" min-height="1"/>
+        <tile name="end_l" symmetry="T" min-height="1" weight="0.2"/>
+		<tile name="end_r" symmetry="T" min-height="1"/>
 		<tile name="turn" symmetry="+" weight="3" min-height="2"/>
+		<tile name="base_line" symmetry="T" max-height="1"/>
+		<tile name="base_end_l" symmetry="T" max-height="1"/>
+		<tile name="base_end_r" symmetry="T" max-height="1"/>
 	</tiles>
 	<neighbors>
         <horizontal left="line" right="empty"/>
@@ -27,6 +30,19 @@
         <!--<horizontal left="turn" right="line 1"/>-->
         <!--<horizontal left="turn 3" right="line 2"/>-->
 
+        <horizontal left="base_line" right="empty"/>
+        <horizontal left="base_line" right="base_line 2"/>
+        <horizontal left="base_line 1" right="base_line 1"/>
+        <horizontal left="base_line 1" right="base_end_r 1"/>
+        <horizontal left="base_end_l 1" right="base_line 1"/>
+        <horizontal left="empty" right="empty"/>
+        <horizontal left="base_end_l" right="empty"/>
+        <horizontal left="base_end_r" right="empty"/>
+        <horizontal left="empty" right="base_end_l 1"/>
+        <horizontal left="base_end_r 1" right="empty"/>
+        <horizontal left="base_end_r" right="base_end_l 1"/>
+        <horizontal left="base_end_l" right="base_end_r 3"/>
+
 
         <vertical left="line" right="line"/>
         <vertical left="line" right="empty"/>
@@ -48,6 +64,21 @@
 
         <vertical left="end_l" right="line"/>
         <vertical left="end_r" right="line"/>
+
+        <vertical left="base_line" right="base_line"/>
+        <vertical left="base_line" right="line"/>
+        <vertical left="base_end_l" right="end_l"/>
+        <vertical left="base_end_l" right="base_end_l"/>
+        <vertical left="base_end_r" right="end_r"/>
+        <vertical left="base_end_r" right="base_end_r"/>
+        <vertical left="base_end_l" right="turn"/>
+        <vertical left="base_end_r" right="turn"/>
+
+        <vertical left="base_line" right="end_l"/>
+        <vertical left="base_line" right="end_r"/>
+
+        <vertical left="base_end_l" right="line"/>
+        <vertical left="base_end_r" right="line"/>
 	</neighbors>
 	<subsets>
 	</subsets>

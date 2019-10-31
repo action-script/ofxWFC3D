@@ -23,12 +23,18 @@ void ofApp::setup(){
     m_end_l.load("end_l.ply");
     m_end_r.load("end_r.ply");
     m_turn.load("turn.ply");
+    m_base_line.load("base_line.ply");
+    m_base_end_l.load("base_end_l.ply");
+    m_base_end_r.load("base_end_r.ply");
 
     // set tile-name mapping
     tiles["line"] = &m_line;
     tiles["end_l"] = &m_end_l;
     tiles["end_r"] = &m_end_r;
     tiles["turn"] = &m_turn;
+    tiles["base_line"] = &m_base_line;
+    tiles["base_end_l"] = &m_base_end_l;
+    tiles["base_end_r"] = &m_base_end_r;
 
     world_node.setOrientation(glm::angleAxis(ofDegToRad(0.f), glm::vec3{1.f, 0.f, 0.f}));
 
@@ -67,9 +73,9 @@ void ofApp::draw(){
 
     for (auto& node : nodes) {
         auto key = node.first;
-        if (key == "line") material.setDiffuseColor( ofColor(220, 100, 100) );
-        if (key == "end_l") material.setDiffuseColor( ofColor(100, 220, 100) );
-        if (key == "end_r") material.setDiffuseColor( ofColor(100, 100, 220) );
+        if (key == "line" || key == "base_line") material.setDiffuseColor( ofColor(220, 100, 100) );
+        if (key == "end_l" || key == "base_end_l") material.setDiffuseColor( ofColor(100, 220, 100) );
+        if (key == "end_r" || key == "base_end_r") material.setDiffuseColor( ofColor(100, 100, 220) );
         if (key == "turn") material.setDiffuseColor( ofColor(100, 220, 220) );
         material.begin();
         node.second.transformGL();
