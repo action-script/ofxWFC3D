@@ -2,7 +2,6 @@
 
 #include "ofMain.h"
 #include "ofxWFC3D.h"
-#include "ofxGui.h"
 
 class ofApp : public ofBaseApp{
 
@@ -16,7 +15,6 @@ class ofApp : public ofBaseApp{
 
         // scene
         ofEasyCam cam;
-        ofBoxPrimitive container;
         ofMaterial material;
         ofLight light;
 
@@ -30,8 +28,5 @@ class ofApp : public ofBaseApp{
         // WFC
         ofxWFC3D wfc;
 
-        // gui
-        ofxPanel gui;
-        ofParameterGroup structure_group;
-        ofParameter<float> bound_width, bound_height, bound_length;
+        bool show_tiles = false;
 };

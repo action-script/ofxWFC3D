@@ -1,2 +1,1 @@
 ofxWFC3D
-ofxGui

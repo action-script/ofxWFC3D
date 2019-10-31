@@ -1,10 +1,8 @@
 #include "ofApp.h"
 
 void ofApp::setup(){
-    //ofSetVerticalSync(true);
-
     // SCENE
-    cam.setDistance(20);
+    cam.setDistance(10);
     cam.setNearClip(0.1);
 
     material.setDiffuseColor( ofColor(220, 220, 220) );
@@ -37,22 +35,10 @@ void ofApp::setup(){
     tiles["base_end_r"] = &m_base_end_r;
 
     world_node.setOrientation(glm::angleAxis(ofDegToRad(0.f), glm::vec3{1.f, 0.f, 0.f}));
-
-
-
-    // GUI
-    structure_group.add( bound_width.set("bounding width", 8, 1, 20 ));
-    structure_group.add( bound_height.set("bounding height", 1, 1, 20 ));
-    structure_group.add( bound_length.set("bounding length", 8, 1, 20 ));
-    gui.setup(structure_group);
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    int x = bound_width, y = bound_height, z = bound_length;
-    container.set(x, y, z);
-    container.setScale(1.0f);
-    container.setPosition(0, y/2.0f, 0);
 }
 
 //--------------------------------------------------------------
@@ -61,33 +47,34 @@ void ofApp::draw(){
     cam.begin();
     ofEnableDepthTest();
 
-    ofDrawGrid(1.0, 10, false, false, true, false);
-    ofDrawAxis(10);
-
-
-    ofSetColor(50, 50, 200);
-    container.drawWireframe();
+    if (show_tiles)
+        ofDrawGrid(1.0, 10, false, false, true, false);
 
     // draw tiles
     light.enable();
 
     for (auto& node : nodes) {
         auto key = node.first;
-        if (key == "line" || key == "base_line") material.setDiffuseColor( ofColor(220, 100, 100) );
-        if (key == "end_l" || key == "base_end_l") material.setDiffuseColor( ofColor(100, 220, 100) );
-        if (key == "end_r" || key == "base_end_r") material.setDiffuseColor( ofColor(100, 100, 220) );
-        if (key == "turn") material.setDiffuseColor( ofColor(100, 220, 220) );
-        material.begin();
         node.second.transformGL();
+        if (show_tiles) {
+            // show rotation
+            ofSetColor(255);
+            int ri = int(node.second.getOrientationEulerRad().y+2.0);
+            if (ri == 0) ri = 3;
+            else if (ri == 1) ri = 2;
+            else if (ri == 2) ri = 0;
+            else if (ri == 3) ri = 1;
+            render->drawString(ofToString(ri), 0, 0.5, 0);
+
+            if (key == "line" || key == "base_line") material.setDiffuseColor( ofColor(220, 100, 100) );
+            if (key == "end_l" || key == "base_end_l") material.setDiffuseColor( ofColor(100, 220, 100) );
+            if (key == "end_r" || key == "base_end_r") material.setDiffuseColor( ofColor(100, 100, 220) );
+            if (key == "turn") material.setDiffuseColor( ofColor(100, 220, 220) );
+        } else  material.setDiffuseColor( ofColor(220, 220, 220) );
+
+        material.begin();
         tiles[key]->draw();
         material.end();
-        ofSetColor(255);
-        int ri = int(node.second.getOrientationEulerRad().y+2.0);
-        if (ri == 0) ri = 3;
-        else if (ri == 1) ri = 2;
-        else if (ri == 2) ri = 0;
-        else if (ri == 3) ri = 1;
-        render->drawString(ofToString(ri), 0, 0.5, 0);
         node.second.restoreTransformGL();
     }
 
@@ -96,26 +83,27 @@ void ofApp::draw(){
 
     ofDisableDepthTest();
     ofDisableLighting();
-    gui.draw();
     ofDrawBitmapStringHighlight("FPS " + ofToString(ofGetFrameRate(),0), 20, 20);
 
-    ofSetColor(255);
-    //ofDrawBitmapString("PRESS SPACEBAR TO GENERATE A NEW STRUCTURE", 20, ofGetHeight() - 40);
+    ofDrawBitmapString("PRESS SPACEBAR TO GENERATE A NEW STRUCTURE", 20, ofGetHeight() - 40);
+    ofDrawBitmapString("PRESS S TO VISUALIZE THE TILES", 20, ofGetHeight() - 20);
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
+    if (key == 115) show_tiles = !show_tiles;
     if (key == 32) {
-        int x = bound_width, y = bound_height, z = bound_length;
-
+        int x = 9, y = 5, z = 9;
 
         // config_name, subset, x, y, z, periodic=false, ground="", surround=false
         wfc.SetUp("data.xml", "default", x, y, z, false, "", "empty");
 
         // instanciate an specific tile on the WFC
-        //for (int ix = 1; ix < x-1; ix++)
-            //for (int iz = 1; iz < z-1; iz++)
-                //wfc.SetTile("empty", ix,y-1,iz);
+        /*
+         *for (int ix = 1; ix < x-1; ix++)
+         *    for (int iz = 1; iz < z-1; iz++)
+         *        wfc.SetTile("empty", ix,y-1,iz);
+         */
 
         int limit = 8, seed = (int)ofRandom(1000);
         for (int k = 0; k < limit; k++) {
