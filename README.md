@@ -73,6 +73,47 @@ For complex structures and systems that require a very concrete tile union, use 
 
 
 
+### Performance
+
+**Example basic** 
+
+```
+OF 0.10.1 - Arch-Linux | i7-6500U
+
+| Process	| Microsecond	| Attempts	|
+| --------- | ------------- | --------- |
+| SetUp		| 2990			| 1			|
+| SetUp		| 1629			| 1			|
+| SetUp		| 1681			| 1			|
+| SetUp		| 1589			| 1			|
+| Run		| 407498		| 1			|
+| Run		| 409174		| 1			|
+| Run		| 397250		| 1			|
+| Run		| 401235		| 1			|
+```
+
+
+
+**Example advance** 
+
+```
+OF 0.10.1 - Arch-Linux | i7-6500U
+
+| Process	| Microsecond	| Attempts	|
+| --------- | ------------- | --------- |
+| SetUp		| 2878			| 1			|
+| SetUp		| 2235			| 1			|
+| SetUp		| 2109			| 1			|
+| SetUp		| 2263			| 1			|
+| Run		| 179453		| 3 		| 2 contradictions
+| Run		| 250538		| 6			| 5 contradictions
+| Run		| 189528		| 3			| 2 contradictions
+| Run		| 216822		| 1			|
+| Run		| 191481		| 2			| 1 contradiction
+```
+
+
+
 ## License
 
 ofxWFC3D is distributed under the MIT License.
