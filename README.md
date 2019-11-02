@@ -77,8 +77,8 @@ For complex structures and systems that require a very concrete tile union, use 
 
 **Example basic** 
 
-```python
-# OF 0.10.1 - Arch-Linux | i7-6500U
+```javascript
+// OF 0.10.1 - Arch-Linux | i7-6500U
 
 | Process	| Microsecond   | Attempts  |
 | ------------- | ------------- | --------- |
@@ -96,8 +96,8 @@ For complex structures and systems that require a very concrete tile union, use 
 
 **Example advance** 
 
-```python
-# OF 0.10.1 - Arch-Linux | i7-6500U
+```javascript
+// OF 0.10.1 - Arch-Linux | i7-6500U
 
 | Process	| Microsecond   | Attempts  |
 | ------------- | ------------- | --------- |
