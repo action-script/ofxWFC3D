@@ -41,7 +41,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
 	std::vector<std::array<int, 8>> action;
 	std::unordered_map<std::string, size_t> first_occurrence;
-	std::vector<int> no_symmetry;
+	std::vector<size_t> no_symmetry;
 
     auto xmln_tiles = xmln_set.getChild("tiles");
 
@@ -84,6 +84,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
             a = [](int i){ return i; };
             b = [](int i){ return i; };
         } else {
+            cardinality = 0;
             ofLogError() << "Unknown symmetry " << sym;
         }
 
@@ -214,7 +215,8 @@ Status ofxWFC3D::Observe()
 
     
     // Lowest Entropy Coordinate Selection
-    int selected_x = -1, selected_y = -1, selected_z = -1, amount;
+    int selected_x = -1, selected_y = -1, selected_z = -1;
+    size_t amount;
 
     for (size_t x = 0; x < max_x; x++) {
         for (size_t y = 0; y < max_y; y++) {
@@ -287,7 +289,7 @@ Status ofxWFC3D::Observe()
     for (size_t t = 0; t < num_patterns; t++) {
         distribution[t] = wave(selected_x, selected_y, selected_z, t) ? pattern_weight[t] : 0;
     }
-    int r = weightedRandom(std::move(distribution), ofRandom(1));
+    size_t r = weightedRandom(std::move(distribution), ofRandom(1));
     for (size_t t = 0; t < num_patterns; t++) {
         wave(selected_x, selected_y, selected_z, t) = t == r;
     }
@@ -399,8 +401,8 @@ void ofxWFC3D::Clear()
 
                 changes(x, y, z) = false;
                 for (size_t t = 0; t < num_patterns; t++) {
-                    int h_min = height_range[t].first;
-                    int h_max = height_range[t].second;
+                    size_t h_min = height_range[t].first;
+                    size_t h_max = height_range[t].second;
 
                     if (h_min <= y && h_max >= y) {
                         wave(x, y, z, t) = true;
@@ -420,7 +422,7 @@ void ofxWFC3D::Clear()
             for (size_t z = 0 ; z < max_z; z++) {
 
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (t != ground_id) wave(x, 0, z, t) = false;
+                    if (t != (size_t)ground_id) wave(x, 0, z, t) = false;
                 }
                 changes(x, 0, z) = true;
 
@@ -438,7 +440,7 @@ void ofxWFC3D::Clear()
             for (size_t z = 0 ; z < max_z; z++) {
 
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (t != surround_id) {
+                    if (t != (size_t)surround_id) {
                         wave(0, y, z, t) = false;
                         wave(max_x-1, y, z, t) = false;
                     }
@@ -449,7 +451,7 @@ void ofxWFC3D::Clear()
 
             for (size_t x = 0 ; x < max_x; x++) {
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (t != surround_id) {
+                    if (t != (size_t)surround_id) {
                         wave(x, y, 0, t) = false;
                         wave(x, y, max_z-1, t) = false;
                     }
@@ -478,7 +480,7 @@ bool ofxWFC3D::SetTile(std::string tile_name, size_t x, size_t y, size_t z)
     bool found = false;
 
     if (x < max_x && y < max_y && z < max_z && x >= 0 && y >= 0 && z >= 0) {
-        for (int i = 0; i < tile_data.size(); i++) {
+        for (size_t i = 0; i < tile_data.size(); i++) {
             if (tile_data[i] == tile_name) {
                 instanced_tiles.push_back({static_cast<size_t>(i), x, y ,z});
                 break;
@@ -580,7 +582,7 @@ std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& p
 size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one)
 {
     double sum = 0;
-    for (int i = 0; i < a.size(); ++i) sum += a[i];
+    for (size_t i = 0; i < a.size(); ++i) sum += a[i];
 
 	if (sum == 0.0) {
 		return std::floor(between_zero_and_one * a.size());
@@ -590,7 +592,7 @@ size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one)
 
 	double accumulated = 0;
     
-    for (int i = 0; i < a.size(); i++) {
+    for (size_t i = 0; i < a.size(); i++) {
 		accumulated += a[i];
 		if (between_zero_and_sum <= accumulated)
 			return i;
