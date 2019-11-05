@@ -82,14 +82,14 @@ For complex structures and systems that require a very concrete tile union, use 
 
 | Process	| Microsecond   | Attempts  |
 | ------------- | ------------- | --------- |
-| SetUp		| 2990          | 1         |
-| SetUp		| 1629          | 1         |
-| SetUp		| 1681          | 1         |
-| SetUp		| 1589          | 1         |
-| Run		| 407498        | 1         |
-| Run		| 409174        | 1         |
-| Run		| 397250        | 1         |
-| Run		| 401235        | 1         |
+| SetUp		| 3204          | 1         |
+| SetUp		| 1452          | 1         |
+| SetUp		| 1438          | 1         |
+| SetUp		| 451           | 1         |
+| Run		| 140883        | 1         |
+| Run		| 142980        | 1         |
+| Run		| 134868        | 1         |
+| Run		| 117848        | 1         |
 ```
 
 
@@ -101,15 +101,15 @@ For complex structures and systems that require a very concrete tile union, use 
 
 | Process	| Microsecond   | Attempts  |
 | ------------- | ------------- | --------- |
-| SetUp		| 2878          | 1         |
-| SetUp		| 2235          | 1         |
-| SetUp		| 2109          | 1         |
-| SetUp		| 2263          | 1         |
-| Run		| 179453        | 3         | 2 contradictions
-| Run		| 250538        | 6         | 5 contradictions
-| Run		| 189528        | 3         | 2 contradictions
-| Run		| 216822        | 1         |
-| Run		| 191481        | 2         | 1 contradiction
+| SetUp		| 2520          | 1         |
+| SetUp		| 2025          | 1         |
+| SetUp		| 1463          | 1         |
+| SetUp		| 526           | 1         |
+| Run		| 59608         | 3         | 2 contradictions
+| Run		| 60894         | 4         | 3 contradictions
+| Run		| 75666         | 3         | 2 contradictions
+| Run		| 64881         | 1         |
+| Run		| 69637         | 2         | 1 contradiction
 ```
 
 

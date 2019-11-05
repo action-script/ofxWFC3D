@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include <regex>
+#include "arrays.h"
 
 /*
  * Implementation based on 
@@ -57,11 +58,11 @@ private:
 
     int ground_id, surround_id;
 
-    std::vector< std::vector< std::vector< std::vector<bool> > > > wave;    // bool [][][][]
-    std::vector< std::vector< std::vector<bool> > > changes;                // bool [][][]
-    std::vector< std::vector< std::vector<int> > > observed;                // int  [][][]
+    Array4D<Bool> wave;
+    Array3D<Bool> changes;
+    Array3D<int> observed;
 
-    std::vector< std::vector< std::vector<bool> > > propagator;             // bool [][][]
+    Array3D<Bool> propagator;
     std::vector<double> pattern_weight;
     std::vector< std::pair<size_t, size_t> > height_range;
     std::vector<std::string> tile_data;

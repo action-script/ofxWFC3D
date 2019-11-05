@@ -141,30 +141,11 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     num_patterns = action.size();
 
-    propagator.resize(6); // bool [6][T][T]
-    for (int d = 0; d < 6; d++) {
-        propagator[d].resize(num_patterns);
-        for (size_t t = 0; t < num_patterns; t++)
-            propagator[d][t].resize(num_patterns, false);
-    }
+    propagator = Array3D<Bool> (6,num_patterns,num_patterns, false);
 
-    // prepare maps
-    wave.resize(max_x);
-    changes.resize(max_x);
-    observed.resize(max_x);
-    for (size_t x = 0; x < max_x; x++) {
-        wave[x].resize(max_y);
-        changes[x].resize(max_y);
-        observed[x].resize(max_y);
-        for (size_t y = 0; y < max_y; y++) {
-            wave[x][y].resize(max_z);
-            changes[x][y].resize(max_z);
-            observed[x][y].resize(max_z, -1);
-            for (size_t z = 0; z < max_z; z++) {
-                wave[x][y][z].resize(num_patterns);
-            }
-        }
-    }
+    wave = Array4D<Bool> (max_x, max_y, max_z, num_patterns, false);
+    changes = Array3D<Bool> (max_x, max_y, max_z, false);
+    observed = Array3D<int> (max_x, max_y, max_z, -1);
 
 
     auto xmln_neighbors = xmln_set.getChild("neighbors");
@@ -198,24 +179,25 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         // 5 -> 3
 
         if (neighbor_type == "horizontal") {
-            propagator[0][R][L] = true;
-            propagator[0][action[R][6]][action[L][6]] = symmetry;
-            propagator[0][action[L][4]][action[R][4]] = symmetry;
-            propagator[0][action[L][2]][action[R][2]] = true;
+            propagator(0, R, L) = true;
+            propagator(0, action[R][6], action[L][6]) = symmetry;
+            propagator(0, action[L][4], action[R][4]) = symmetry;
+            propagator(0, action[L][2], action[R][2]) = true;
 
-            propagator[4][U][D] = true;
-            propagator[4][action[D][6]][action[U][6]] = symmetry;
-            propagator[4][action[U][4]][action[D][4]] = symmetry;
-            propagator[4][action[D][2]][action[U][2]] = true;
+            propagator(4, U, D) = true;
+            propagator(4, action[D][6], action[U][6]) = symmetry;
+            propagator(4, action[U][4], action[D][4]) = symmetry;
+            propagator(4, action[D][2], action[U][2]) = true;
         } else {
-            for (int g = 0; g < 8; g++) propagator[1][action[L][g]][action[R][g]] = true;
+            for (int g = 0; g < 8; g++) propagator(1, action[L][g], action[R][g]) = true;
+
         }
 
         for (size_t t1 = 0; t1 < num_patterns; ++t1) {
             for (size_t t2 = 0; t2 < num_patterns; ++t2) {
-                propagator[2][t1][t2] = propagator[0][t2][t1];
-                propagator[5][t1][t2] = propagator[4][t2][t1];
-                propagator[3][t1][t2] = propagator[1][t2][t1];
+                propagator(2, t1, t2) = propagator(0, t2, t1);
+                propagator(5 ,t1, t2) = propagator(4, t2, t1);
+                propagator(3, t1, t2) = propagator(1, t2, t1);
             }
         }
 
@@ -233,17 +215,15 @@ Status ofxWFC3D::Observe()
     
     // Lowest Entropy Coordinate Selection
     int selected_x = -1, selected_y = -1, selected_z = -1, amount;
-    std::vector<bool> w;
 
     for (size_t x = 0; x < max_x; x++) {
         for (size_t y = 0; y < max_y; y++) {
             for (size_t z = 0; z < max_z; z++) {
-                w = wave[x][y][z];
                 amount = 0;
                 sum = 0;
 
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (w[t]) {
+                    if (wave(x,y,z,t)) {
                         amount += 1;
                         sum += pattern_weight[t];
                     }
@@ -263,7 +243,7 @@ Status ofxWFC3D::Observe()
                     log_sum = log(sum);
 
                     for (size_t t = 0; t < num_patterns; t++) {
-                        if (w[t]) main_sum += pattern_weight[t] * log_prob[t];
+                        if (wave(x,y,z,t)) main_sum += pattern_weight[t] * log_prob[t];
                     }
 
                     entropy = log_sum - main_sum / sum;
@@ -288,8 +268,8 @@ Status ofxWFC3D::Observe()
                 for (size_t z = 0; z < max_z; z++) {
                     
                     for (size_t t = 0; t < num_patterns; t++) {
-                        if (wave[x][y][z][t]) {
-                            observed[x][y][z] = t;
+                        if (wave(x, y, z, t)) {
+                            observed(x, y, z) = t;
                             break;
                         }
                     }
@@ -305,13 +285,13 @@ Status ofxWFC3D::Observe()
     std::vector<double> distribution(num_patterns);
 
     for (size_t t = 0; t < num_patterns; t++) {
-        distribution[t] = wave[selected_x][selected_y][selected_z][t] ? pattern_weight[t] : 0;
+        distribution[t] = wave(selected_x, selected_y, selected_z, t) ? pattern_weight[t] : 0;
     }
     int r = weightedRandom(std::move(distribution), ofRandom(1));
     for (size_t t = 0; t < num_patterns; t++) {
-        wave[selected_x][selected_y][selected_z][t] = t == r;
+        wave(selected_x, selected_y, selected_z, t) = t == r;
     }
-    changes[selected_x][selected_y][selected_z] = true;
+    changes(selected_x, selected_y, selected_z) = true;
 
 
     return Status::ObsUnfinished;
@@ -375,30 +355,27 @@ bool ofxWFC3D::Propagate()
 
 
                     // No Changes this Voxel
-                    if (!changes[x1][y1][z1]) {
+                    if (!changes(x1, y1, z1)) {
                         continue;
                     }
 
                     // x2 = Original Voxel
                     // x1 = Neighbor Depending on Direction (0 - 6) and Periodicity
-
-                    auto wave1 = wave[x1][y1][z1];
-                    auto wave2 = wave[x2][y2][z2];
                     
                     for (size_t t2 = 0; t2 < num_patterns; t2++)  {
-                        if (wave2[t2]) {
-                            auto prop = propagator[d][t2];
+                        if (wave(x2, y2, z2, t2)) {
+                            //auto prop = propagator[d][t2];
                             can_prop = false;
 
                             for (size_t t1 = 0; t1 < num_patterns && !can_prop; t1++) {
-                                if (wave1[t1]) {
-                                    can_prop = prop[t1]; // t2 -> t1 Propagate Check
+                                if (wave(x1, y1, z1, t1)) {
+                                    can_prop = propagator(d, t2, t1); // t2 -> t1 Propagate Check
                                 }
                             }
 
                             if (!can_prop) {
-                                wave[x2][y2][z2][t2] = false;
-                                changes[x2][y2][z2] = true;
+                                wave(x2, y2, z2, t2) = false;
+                                changes(x2, y2, z2) = true;
                                 change = true;
                             }
 
@@ -420,16 +397,16 @@ void ofxWFC3D::Clear()
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
 
-                changes[x][y][z] = false;
+                changes(x, y, z) = false;
                 for (size_t t = 0; t < num_patterns; t++) {
                     int h_min = height_range[t].first;
                     int h_max = height_range[t].second;
 
                     if (h_min <= y && h_max >= y) {
-                        wave[x][y][z][t] = true;
-                        changes[x][y][z] = true;
+                        wave(x, y, z, t) = true;
+                        changes(x, y, z) = true;
                     } else {
-                        wave[x][y][z][t] = false;
+                        wave(x, y, z, t) = false;
                     }
                 }
 
@@ -443,14 +420,14 @@ void ofxWFC3D::Clear()
             for (size_t z = 0 ; z < max_z; z++) {
 
                 for (size_t t = 0; t < num_patterns; t++) {
-                    if (t != ground_id) wave[x][0][z][t] = false;
+                    if (t != ground_id) wave(x, 0, z, t) = false;
                 }
-                changes[x][0][z] = true;
+                changes(x, 0, z) = true;
 
                 //for (size_t z = 0; z < max_z - 1; z++) {
                 for (size_t y = 1; y < max_y; y++) {
-                    wave[x][y][z][ground_id] = false;
-                    changes[x][y][z] = true;
+                    wave(x, y, z, ground_id) = false;
+                    changes(x, y, z) = true;
                 }
             }
         }
@@ -462,23 +439,23 @@ void ofxWFC3D::Clear()
 
                 for (size_t t = 0; t < num_patterns; t++) {
                     if (t != surround_id) {
-                        wave[0][y][z][t] = false;
-                        wave[max_x-1][y][z][t] = false;
+                        wave(0, y, z, t) = false;
+                        wave(max_x-1, y, z, t) = false;
                     }
                 }
-                changes[0][y][z] = true;
-                changes[max_x-1][y][z] = true;
+                changes(0, y, z) = true;
+                changes(max_x-1, y, z) = true;
             }
 
             for (size_t x = 0 ; x < max_x; x++) {
                 for (size_t t = 0; t < num_patterns; t++) {
                     if (t != surround_id) {
-                        wave[x][y][0][t] = false;
-                        wave[x][y][max_z-1][t] = false;
+                        wave(x, y, 0, t) = false;
+                        wave(x, y, max_z-1, t) = false;
                     }
                 }
-                changes[x][y][0] = true;
-                changes[x][y][max_z-1] = true;
+                changes(x, y, 0) = true;
+                changes(x, y, max_z-1) = true;
 
             }
         }
@@ -486,10 +463,10 @@ void ofxWFC3D::Clear()
 
     for (auto& instanced : instanced_tiles) {
         for (size_t t = 0; t < num_patterns; t++) {
-            if (t != instanced.t) wave[instanced.x][instanced.y][instanced.z][t] = false;
+            if (t != instanced.t) wave(instanced.x, instanced.y, instanced.z, t) = false;
         }
-        wave[instanced.x][instanced.y][instanced.z][instanced.t] = true;
-        changes[instanced.x][instanced.y][instanced.z] = true;
+        wave(instanced.x, instanced.y, instanced.z, instanced.t) = true;
+        changes(instanced.x, instanced.y, instanced.z) = true;
     }
 }
 
@@ -541,7 +518,7 @@ std::string ofxWFC3D::TextOutput()
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
                 result.append("[");
-                result.append(tile_data[observed[x][y][z]]);
+                result.append(tile_data[observed(x, y, z)]);
                 result.append("], ");
             }
             result.append("\n");
@@ -562,7 +539,7 @@ std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >>
             tiles[x][y].resize(max_z);
             for (size_t z = 0 ; z < max_z; z++) {
 
-                auto tile_cardinality = ofSplitString(tile_data[observed[x][y][z]], " ", true);
+                auto tile_cardinality = ofSplitString(tile_data[observed(x, y, z)], " ", true);
                 tiles[x][y][z][tile_cardinality[0]] = ofToInt(tile_cardinality[1]);
                  
             }
@@ -580,7 +557,7 @@ std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& p
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
 
-                auto tile_cardinality = ofSplitString(tile_data[observed[x][y][z]], " ", true);
+                auto tile_cardinality = ofSplitString(tile_data[observed(x, y, z)], " ", true);
                 if ( ofContains(ignore, tile_cardinality[0]) ) continue;
 
 
