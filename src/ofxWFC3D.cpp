@@ -551,9 +551,9 @@ std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >>
     return tiles;
 }
 
-std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& parent_node, ofVec3f grid_size, std::vector<std::string> ignore)
+std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& parent_node, glm::vec3 grid_size, std::vector<std::string> ignore)
 {
-    ofVec3f axis_y = ofVec3f(0.0, 1.0, 0.0);
+    glm::vec3 axis_y = glm::vec3(0.0, 1.0, 0.0);
     std::vector< std::pair<std::string, ofNode> > tiles;
     for (size_t x = 0 ; x < max_x; x++) {
         for (size_t y = 0 ; y < max_y; y++) {

@@ -9,7 +9,7 @@ void ofApp::setup(){
 
     material.setDiffuseColor( ofColor(220, 220, 220) );
     light.move(2,-5,-1);
-    light.lookAt(ofVec3f(0.0,0.0,0.0));
+    light.lookAt(glm::vec3(0.0,0.0,0.0));
     light.setDirectional();
 	light.setDiffuseColor( ofColor(240, 240, 210) );
     light.setAmbientColor( ofColor(60,50,90) );
@@ -103,7 +103,7 @@ void ofApp::keyPressed(int key){
                 ofLog() << "WFC success";
 
                 // process tiles and convert to ofNode tree
-                nodes = wfc.NodeTileOutput(world_node, ofVec3f(vs,vs,vs), {"empty"});
+                nodes = wfc.NodeTileOutput(world_node, glm::vec3(vs,vs,vs), {"empty"});
                 break;
             } else {
                 ofLog() << "WFC failure";

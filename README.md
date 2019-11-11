@@ -35,7 +35,7 @@ wfc.Run(seed);
 
 // get the list of ofNodes, using 'world_node' as parent
 ofNode world_node;
-auto nodes = wfc.NodeTileOutput(world_node, ofVec3f(size_x,size_y,size_z));
+auto nodes = wfc.NodeTileOutput(world_node, glm::vec3(size_x,size_y,size_z));
 
 ```
 

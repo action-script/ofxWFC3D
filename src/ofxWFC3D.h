@@ -36,13 +36,13 @@ public:
     );
     bool Run(int seed);
     bool SetTile(std::string tile_name, size_t x, size_t y, size_t z);
-    bool SetTile(std::string tile_name, ofVec3f position) {
+    bool SetTile(std::string tile_name, glm::vec3 position) {
         return this->SetTile(tile_name, position.x, position.y, position.z);
     };
     std::string TextOutput();
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > TileOutput();
     std::vector< std::pair<std::string, ofNode> > NodeTileOutput(
-            ofNode& parent_node, ofVec3f grid_size,
+            ofNode& parent_node, glm::vec3 grid_size,
             std::vector<std::string> ignore = {""}
     );
 
