@@ -132,7 +132,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         auto xmla_minheight = xmln_tile.getAttribute("min-height"); 
         auto xmla_maxheight = xmln_tile.getAttribute("max-height");
         size_t tile_minheight = xmla_minheight.getValue() == "" ? 0 : xmla_minheight.getIntValue();
-        size_t tile_maxheight = xmla_maxheight.getValue() == "" ? this->max_z : xmla_maxheight.getIntValue();
+        size_t tile_maxheight = xmla_maxheight.getValue() == "" ? this->max_y : xmla_maxheight.getIntValue();
         for(int t = 0; t < cardinality; t++) {
             height_range.push_back({tile_minheight, tile_maxheight});
         }
