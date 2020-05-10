@@ -39,12 +39,20 @@ public:
     bool SetTile(std::string tile_name, glm::vec3 position) {
         return this->SetTile(tile_name, position.x, position.y, position.z);
     };
+
+    // getters
+    std::vector<ofNode> getNodes(
+            ofNode& parent_node, glm::vec3 grid_size = glm::vec3(1.f,1.f,1.f),
+            std::vector<std::string> ignore = {""});
+    std::vector<size_t> getIndices(std::vector<std::string> ignore = {""});
+    std::vector<std::string> getTileNames(std::vector<std::string> ignore = {""});
+
+    // output
     std::string TextOutput();
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > TileOutput();
     std::vector< std::pair<std::string, ofNode> > NodeTileOutput(
-            ofNode& parent_node, glm::vec3 grid_size,
-            std::vector<std::string> ignore = {""}
-    );
+            ofNode& parent_node, glm::vec3 grid_size = glm::vec3(1.f,1.f,1.f),
+            std::vector<std::string> ignore = {""});
 
 protected:
     Status Observe();

@@ -25,13 +25,6 @@ void ofApp::setup(){
     m_up.load("up.ply");
     m_vertical.load("vertical.ply");
 
-    // set tile-name mapping
-    tiles["down"] = &m_down;
-    tiles["line"] = &m_line;
-    tiles["turn"] = &m_turn;
-    tiles["up"] = &m_up;
-    tiles["vertical"] = &m_vertical;
-
     world_node.setOrientation(glm::angleAxis(ofDegToRad(0.f), glm::vec3{1.f, 0.f, 0.f}));
 
 
@@ -65,11 +58,14 @@ void ofApp::draw(){
     material.begin();
     light.enable();
 
-    for (auto& node : nodes) {
-        auto key = node.first;
-        node.second.transformGL();
-        tiles[key]->draw();
-        node.second.restoreTransformGL();
+    //for (auto& node : nodes) {
+    for (int i = 0; i < tileNodes.size(); i++) { 
+        // transform the model
+        tileNodes[i].transformGL();
+        // draw instance of the model
+        tileMeshes[ modelIndices[i] ]->drawInstanced(OF_MESH_FILL, 1);
+
+        tileNodes[i].restoreTransformGL();
     }
 
     light.disable();
@@ -90,8 +86,7 @@ void ofApp::keyPressed(int key){
     if (key == 32) {
         int x = bound_width, y = bound_height, z = bound_length;
 
-
-        // config_name, subset, x, y, z, periodic=false, ground="", surround=false
+        // config_name, subset, x, y, z, periodic=false, ground="", surround=""
         wfc.SetUp("data.xml", "default", x, y, z);
         
 
@@ -103,7 +98,23 @@ void ofApp::keyPressed(int key){
                 ofLog() << "WFC success";
 
                 // process tiles and convert to ofNode tree
-                nodes = wfc.NodeTileOutput(world_node, glm::vec3(vs,vs,vs), {"empty"});
+                //nodes = wfc.NodeTileOutput(world_node, glm::vec3(vs,vs,vs), {"empty"});
+
+                tileNodes = wfc.getNodes(world_node, glm::vec3(vs,vs,vs), {"empty"});
+                modelIndices = wfc.getIndices({"empty"}); // 'empty' ignored on getNodes()
+
+                // mapping tileMeshes as the xml config file order.
+                // this can be done once on the setup manually, by reading the xml file or using getTileName()
+                auto tileNames = wfc.getTileNames({"empty"}); // also ignoring the same tile
+                tileMeshes.clear();
+                for (auto& name : tileNames) {
+                    if (name == "down") tileMeshes.push_back(&m_down);
+                    if (name == "line") tileMeshes.push_back(&m_line);
+                    if (name == "turn") tileMeshes.push_back(&m_turn);
+                    if (name == "up") tileMeshes.push_back(&m_up);
+                    if (name == "vertical") tileMeshes.push_back(&m_vertical);
+                }
+
                 break;
             } else {
                 ofLog() << "WFC failure";

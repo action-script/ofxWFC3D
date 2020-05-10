@@ -531,6 +531,7 @@ std::string ofxWFC3D::TextOutput()
     return result;
 }
 
+// outputs a 3d list of the tileName as key for its cardinality (rotation)
 std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > ofxWFC3D::TileOutput()
 {
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > tiles;
@@ -551,6 +552,7 @@ std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >>
     return tiles;
 }
 
+// outputs a key-value vector of the tileName and the transformation ofNode
 std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& parent_node, glm::vec3 grid_size, std::vector<std::string> ignore)
 {
     glm::vec3 axis_y = glm::vec3(0.0, 1.0, 0.0);
@@ -578,6 +580,68 @@ std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& p
 
     return tiles;
 }
+
+// sets the tiles positions as ofNodes and returns a single dimensional vector with the transformations.
+std::vector<ofNode> ofxWFC3D::getNodes(ofNode& parent_node, glm::vec3 grid_size, std::vector<std::string> ignore) {
+    std::vector<ofNode> transformations;
+
+    glm::vec3 axis_y = glm::vec3(0.0, 1.0, 0.0);
+    for (size_t x = 0 ; x < max_x; x++) {
+        for (size_t y = 0 ; y < max_y; y++) {
+            for (size_t z = 0 ; z < max_z; z++) {
+
+                auto tile_cardinality = ofSplitString(tile_data[observed(x, y, z)], " ", true);
+                if ( ofContains(ignore, tile_cardinality[0]) ) continue;
+
+
+                ofNode tile_node;
+                tile_node.setParent(parent_node);
+                tile_node.setPosition(x*grid_size.x, y*grid_size.y, z*grid_size.z);
+                tile_node.rotateDeg(ofToInt( tile_cardinality[1])*90.0f, axis_y );
+
+                transformations.push_back(tile_node);
+
+            }
+        }
+    }
+
+    return transformations;
+}
+
+// returns a list with the model index for each tile. Index based on xml configuration order.
+std::vector<size_t> ofxWFC3D::getIndices(std::vector<std::string> ignore) {
+    std::vector<size_t> indices;
+    std::vector<std::string> tile_names = this->getTileNames(ignore);
+
+    for (size_t x = 0 ; x < max_x; x++) {
+        for (size_t y = 0 ; y < max_y; y++) {
+            for (size_t z = 0 ; z < max_z; z++) {
+                std::string data_name = ofSplitString(tile_data[observed(x, y, z)], " ", true)[0];
+                if ( ofContains(ignore, data_name) ) continue;
+
+                std::vector<std::string>::iterator it;
+                it = std::find(tile_names.begin(), tile_names.end(), data_name);
+                indices.push_back( (size_t)(it-tile_names.begin()) );
+            }
+        }
+    }
+
+    return indices;
+}
+
+// returns a list with the tile names based on xml configuration file.
+std::vector<std::string> ofxWFC3D::getTileNames(std::vector<std::string> ignore) {
+    std::vector<std::string> tileNames;
+    for (auto& row : tile_data) {
+        std::string tile_name = ofSplitString(row, " ", true)[0];
+        if ( ofContains(ignore, tile_name) ) continue;
+        tileNames.push_back(tile_name);
+    }
+
+    tileNames.erase( unique( tileNames.begin(), tileNames.end() ), tileNames.end() );
+    return tileNames;
+}
+
 
 size_t weightedRandom(const std::vector<double>& a, double between_zero_and_one)
 {

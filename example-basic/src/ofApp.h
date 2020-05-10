@@ -21,10 +21,13 @@ class ofApp : public ofBaseApp{
         ofLight light;
 
         // models
+        ofVboMesh m_down, m_line, m_turn, m_up, m_vertical; // ofVboMesh allows instancing
+
+        // tile models and positions
         ofNode world_node;
-        ofMesh m_down, m_line, m_turn, m_up, m_vertical;
-        std::unordered_map<std::string, ofMesh*> tiles;
-        std::vector< std::pair<std::string, ofNode> > nodes;
+        std::vector<ofVboMesh*> tileMeshes; // each unique tile model
+        std::vector<ofNode> tileNodes; // every tile position
+        std::vector<size_t> modelIndices; // index of the model for each tile
         float vs = 3.0; // model size (3 blender units)
 
         // WFC

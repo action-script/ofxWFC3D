@@ -33,9 +33,12 @@ wfc.SetUp("data.xml", "default", width, height, length);
 // (the algorithm may runs into contradictions)
 wfc.Run(seed);
 
-// get the list of ofNodes, using 'world_node' as parent
-ofNode world_node;
-auto nodes = wfc.NodeTileOutput(world_node, glm::vec3(size_x,size_y,size_z));
+// get a list of all the tiles transformations
+ofNode world_node; // parent node
+std::vector<ofNode> = wfc.getNodes(world_node, glm::vec3(size_x,size_y,size_z));
+
+// get the indices of each tile based on the configuration
+std::vector<size_t> modelIndices = wfc.getIndices();
 
 ```
 
@@ -57,7 +60,9 @@ wfc.SetTile("tile", x, y, z);
 #### + symmetry
 
 This version of the WFC, includes tiles without symmetry.
-For complex structures and systems that require a very concrete tile union, use the symmetry type "**+**".
+The "**+**" symmetry actually does not perform any symmetry, instead uses only rotations and has 4 unique anchor points.
+
+For complex structures that require a very concrete tile union, use the symmetry type "**+**".
 
 ```xml
 <tile name="corner" symmetry="+"/>
@@ -66,6 +71,8 @@ For complex structures and systems that require a very concrete tile union, use 
 
 
 #### Height range
+
+The "**min-height**" and "**max-height**"  attributes defined the height range where a tile can be placed.
 
 ```xml
 <tile name="roof" symmetry="I" min-height="2" max-height="4"/>
