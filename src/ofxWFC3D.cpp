@@ -180,14 +180,18 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         // 5 -> 3
 
         if (neighbor_type == "horizontal") {
-            propagator(0, R, L) = true;
-            propagator(0, action[R][6], action[L][6]) = symmetry;
-            propagator(0, action[L][4], action[R][4]) = symmetry;
-            propagator(0, action[L][2], action[R][2]) = true;
+            propagator(2, L, R) = true;
+            if (symmetry) {
+                propagator(2, action[L][6], action[R][6]) = true;   // -90
+                propagator(2, action[R][4], action[L][4]) = true;   // 90
+            }
+            propagator(2, action[R][2], action[L][2]) = true;       // 180
 
             propagator(4, U, D) = true;
-            propagator(4, action[D][6], action[U][6]) = symmetry;
-            propagator(4, action[U][4], action[D][4]) = symmetry;
+            if (symmetry) {
+                propagator(4, action[D][6], action[U][6]) = true;
+                propagator(4, action[U][4], action[D][4]) = true;
+            }
             propagator(4, action[D][2], action[U][2]) = true;
         } else {
             for (int g = 0; g < 8; g++) propagator(1, action[L][g], action[R][g]) = true;
@@ -196,7 +200,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
         for (size_t t1 = 0; t1 < num_patterns; ++t1) {
             for (size_t t2 = 0; t2 < num_patterns; ++t2) {
-                propagator(2, t1, t2) = propagator(0, t2, t1);
+                propagator(0, t1, t2) = propagator(2, t2, t1);
                 propagator(5 ,t1, t2) = propagator(4, t2, t1);
                 propagator(3, t1, t2) = propagator(1, t2, t1);
             }
