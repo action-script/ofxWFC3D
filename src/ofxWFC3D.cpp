@@ -147,6 +147,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
     wave = Array4D<Bool> (max_x, max_y, max_z, num_patterns, false);
     changes = Array3D<Bool> (max_x, max_y, max_z, false);
     observed = Array3D<int> (max_x, max_y, max_z, -1);
+    in_queue = Array3D<Bool> (max_x, max_y, max_z, false);
 
 
     auto xmln_neighbors = xmln_set.getChild("neighbors");
@@ -208,6 +209,12 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     } // end neighbors
 
+    // Precompute log probabilities once here, not on every Run() call
+    log_T = log(num_patterns);
+    log_prob.clear();
+    log_prob.reserve(num_patterns);
+    for (size_t t = 0; t < num_patterns; t++)
+        log_prob.push_back(log(pattern_weight[t]));
 
     //ofLog() << "Initialize Done";
 }
@@ -306,95 +313,122 @@ Status ofxWFC3D::Observe()
 bool ofxWFC3D::Propagate()
 {
     //ofLog() << " -- Propagating --";
-    bool change = false, can_prop;
 
-    for (size_t x2 = 0; x2 < max_x; x2++) {
-        for (size_t y2 = 0; y2 < max_y; y2++) {
-            for (size_t z2 = 0; z2 < max_z; z2++) {
-                for (size_t d = 0; d < 6; d++) {
-
-                    int x1 = x2, y1 = y2, z1 = z2;
-
-                     // Periodic Check
-                    if (d == 0) { // <
-                        if (x2 == 0) {
-                            if (!periodic) continue;
-                            else x1 = max_x - 1;
-                        }
-                        else x1 = x2 - 1;
-                    }
-                    else if (d == 1) { // ^
-                        if (y2 == max_y - 1) {
-                            if (!periodic) continue;
-                            else y1 = 0;
-                        }
-                        else y1 = y2 + 1;
-                    }
-                    else if (d == 2) { // >
-                        if (x2 == max_x - 1) {
-                            if (!periodic) continue;
-                            else x1 = 0;
-                        }
-                        else x1 = x2 + 1;
-                    }
-                    else if (d == 3) { // v
-                        if (y2 == 0) {
-                            if (!periodic) continue;
-                            else y1 = max_y - 1;
-                        }
-                        else y1 = y2 - 1;
-                    }
-                    else if (d == 4) { // z>
-                        if (z2 == max_z - 1) {
-                            if (!periodic) continue;
-                            else z1 = 0;
-                        }
-                        else z1 = z2 + 1;
-                    }
-                    else { // <z
-                        if (z2 == 0) {
-                            if (!periodic) continue;
-                            else z1 = max_z - 1;
-                        }
-                        else z1 = z2 - 1;
-                    } // end periodic check
-
-
-                    // No Changes this Voxel
-                    if (!changes(x1, y1, z1)) {
-                        continue;
-                    }
-
-                    // x2 = Original Voxel
-                    // x1 = Neighbor Depending on Direction (0 - 6) and Periodicity
-                    
-                    for (size_t t2 = 0; t2 < num_patterns; t2++)  {
-                        if (wave(x2, y2, z2, t2)) {
-                            //auto prop = propagator[d][t2];
-                            can_prop = false;
-
-                            for (size_t t1 = 0; t1 < num_patterns && !can_prop; t1++) {
-                                if (wave(x1, y1, z1, t1)) {
-                                    can_prop = propagator(d, t2, t1); // t2 -> t1 Propagate Check
-                                }
-                            }
-
-                            if (!can_prop) {
-                                wave(x2, y2, z2, t2) = false;
-                                changes(x2, y2, z2) = true;
-                                change = true;
-                            }
-
-                        }
-                    } // end t2
-
-
+    // Seed the queue from changes[] array (cells that changed in Clear() or Observe())
+    for (size_t x = 0; x < max_x; x++) {
+        for (size_t y = 0; y < max_y; y++) {
+            for (size_t z = 0; z < max_z; z++) {
+                if (changes(x, y, z) && !in_queue(x, y, z)) {
+                    prop_queue.push({x, y, z});
+                    in_queue(x, y, z) = true;
                 }
             }
         }
-    } // end x2, y2, z2
+    }
 
-    return change;
+    // Clear changes array — queue is now the sole worklist for this pass
+    for (size_t x = 0; x < max_x; x++) {
+        for (size_t y = 0; y < max_y; y++) {
+            for (size_t z = 0; z < max_z; z++) {
+                changes(x, y, z) = false;
+            }
+        }
+    }
+
+    // Direction offsets: neighbors = (x1+dx[d], y1+dy[d], z1+dz[d])
+    // d represents the direction FROM the neighbor's perspective
+    static const int dx[6] = {+1, 0, -1, 0, 0, 0};
+    static const int dy[6] = {0, -1, 0, +1, 0, 0};
+    static const int dz[6] = {0, 0, 0, 0, -1, +1};
+
+    bool contradiction = false;
+
+    // Drain the queue
+    while (!prop_queue.empty()) {
+        Cell c = prop_queue.front();
+        prop_queue.pop();
+
+        size_t x1 = c.x, y1 = c.y, z1 = c.z;
+        in_queue(x1, y1, z1) = false;
+
+        // Check all 6 neighbors
+        for (int d = 0; d < 6; d++) {
+            int x2_int = x1 + dx[d];
+            int y2_int = y1 + dy[d];
+            int z2_int = z1 + dz[d];
+
+            // Boundary check with periodic wrapping
+            if (x2_int < 0) {
+                if (!periodic) continue;
+                x2_int = max_x - 1;
+            } else if (x2_int >= (int)max_x) {
+                if (!periodic) continue;
+                x2_int = 0;
+            }
+
+            if (y2_int < 0) {
+                if (!periodic) continue;
+                y2_int = max_y - 1;
+            } else if (y2_int >= (int)max_y) {
+                if (!periodic) continue;
+                y2_int = 0;
+            }
+
+            if (z2_int < 0) {
+                if (!periodic) continue;
+                z2_int = max_z - 1;
+            } else if (z2_int >= (int)max_z) {
+                if (!periodic) continue;
+                z2_int = 0;
+            }
+
+            size_t x2 = (size_t)x2_int;
+            size_t y2 = (size_t)y2_int;
+            size_t z2 = (size_t)z2_int;
+
+            // Check compatibility and eliminate invalid patterns at (x2, y2, z2)
+            bool cell_changed = false;
+            for (size_t t2 = 0; t2 < num_patterns; t2++) {
+                if (!wave(x2, y2, z2, t2)) continue;
+
+                // Check if pattern t2 at (x2,y2,z2) is compatible with some pattern t1 at (x1,y1,z1)
+                bool can_prop = false;
+                for (size_t t1 = 0; t1 < num_patterns && !can_prop; t1++) {
+                    if (wave(x1, y1, z1, t1)) {
+                        can_prop = propagator(d, t2, t1);
+                    }
+                }
+
+                if (!can_prop) {
+                    wave(x2, y2, z2, t2) = false;
+                    cell_changed = true;
+                }
+            }
+
+            if (cell_changed) {
+                // Check for contradiction: does this cell have any valid patterns left?
+                bool any_valid = false;
+                for (size_t t = 0; t < num_patterns; t++) {
+                    if (wave(x2, y2, z2, t)) {
+                        any_valid = true;
+                        break;
+                    }
+                }
+
+                if (!any_valid) {
+                    contradiction = true;
+                }
+
+                // Enqueue the neighbor if it's not already in the queue
+                if (!in_queue(x2, y2, z2)) {
+                    prop_queue.push({x2, y2, z2});
+                    in_queue(x2, y2, z2) = true;
+                }
+            }
+        }
+    }
+
+    return contradiction;
 }
 
 void ofxWFC3D::Clear()
@@ -497,11 +531,6 @@ bool ofxWFC3D::SetTile(std::string tile_name, size_t x, size_t y, size_t z)
 
 bool ofxWFC3D::Run(int seed)
 {
-    log_T = log(num_patterns);
-
-    for (size_t t = 0; t < num_patterns; t++)
-        log_prob.push_back( log(pattern_weight[t]) );
-
     Clear();
 
     ofSeedRandom(seed);
@@ -512,7 +541,8 @@ bool ofxWFC3D::Run(int seed)
         if (result != Status::ObsUnfinished)
             return result == Status::ObsSuccess ? true : false;
 
-        while(Propagate());
+        // Propagate returns true if a contradiction is found
+        if (Propagate()) return false;
     }
     return false;
 }

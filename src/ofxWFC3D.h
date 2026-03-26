@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include <regex>
+#include <queue>
 #include "arrays.h"
 
 /*
@@ -15,6 +16,10 @@ enum class Status {
     ObsSuccess,
     ObsFail,
     ObsUnfinished,
+};
+
+struct Cell {
+    size_t x, y, z;
 };
 
 struct InstancedTile {
@@ -69,6 +74,9 @@ private:
     Array4D<Bool> wave;
     Array3D<Bool> changes;
     Array3D<int> observed;
+
+    std::queue<Cell> prop_queue;
+    Array3D<Bool> in_queue;
 
     Array3D<Bool> propagator;
     std::vector<double> pattern_weight;
