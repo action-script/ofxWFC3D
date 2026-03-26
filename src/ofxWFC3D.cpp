@@ -216,6 +216,21 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
     for (size_t t = 0; t < num_patterns; t++)
         log_prob.push_back(log(pattern_weight[t]));
 
+    // Precompute bitset masks for pattern compatibility (if num_patterns <= 64)
+    prop_mask.clear();
+    if (num_patterns <= 64) {
+        prop_mask.assign(6, std::vector<uint64_t>(num_patterns, 0ULL));
+        for (size_t d = 0; d < 6; d++) {
+            for (size_t t2 = 0; t2 < num_patterns; t2++) {
+                for (size_t t1 = 0; t1 < num_patterns; t1++) {
+                    if (propagator(d, t2, t1)) {
+                        prop_mask[d][t2] |= (1ULL << t1);
+                    }
+                }
+            }
+        }
+    }
+
     //ofLog() << "Initialize Done";
 }
 
@@ -268,7 +283,7 @@ Status ofxWFC3D::Observe()
                     selected_y = y;
                     selected_z = z;
                 }
-                
+
             }
         }
     } // end of x,y,z
@@ -305,7 +320,6 @@ Status ofxWFC3D::Observe()
         wave(selected_x, selected_y, selected_z, t) = t == r;
     }
     changes(selected_x, selected_y, selected_z) = true;
-
 
     return Status::ObsUnfinished;
 }
@@ -388,20 +402,45 @@ bool ofxWFC3D::Propagate()
 
             // Check compatibility and eliminate invalid patterns at (x2, y2, z2)
             bool cell_changed = false;
-            for (size_t t2 = 0; t2 < num_patterns; t2++) {
-                if (!wave(x2, y2, z2, t2)) continue;
 
-                // Check if pattern t2 at (x2,y2,z2) is compatible with some pattern t1 at (x1,y1,z1)
-                bool can_prop = false;
-                for (size_t t1 = 0; t1 < num_patterns && !can_prop; t1++) {
+            // Use bitset optimization if available, otherwise use original loop
+            if (!prop_mask.empty()) {
+                // Bitset version: build mask of compatible patterns at (x1,y1,z1)
+                uint64_t compatible = 0ULL;
+                for (size_t t1 = 0; t1 < num_patterns; t1++) {
                     if (wave(x1, y1, z1, t1)) {
-                        can_prop = propagator(d, t2, t1);
+                        compatible |= (1ULL << t1);
                     }
                 }
 
-                if (!can_prop) {
-                    wave(x2, y2, z2, t2) = false;
-                    cell_changed = true;
+                // Check each pattern at (x2,y2,z2)
+                for (size_t t2 = 0; t2 < num_patterns; t2++) {
+                    if (!wave(x2, y2, z2, t2)) continue;
+
+                    // Use bitwise AND to check if any compatible pattern exists
+                    bool can_prop = (compatible & prop_mask[d][t2]) != 0ULL;
+
+                    if (!can_prop) {
+                        wave(x2, y2, z2, t2) = false;
+                        cell_changed = true;
+                    }
+                }
+            } else {
+                // Original loop version (when num_patterns > 64)
+                for (size_t t2 = 0; t2 < num_patterns; t2++) {
+                    if (!wave(x2, y2, z2, t2)) continue;
+
+                    bool can_prop = false;
+                    for (size_t t1 = 0; t1 < num_patterns && !can_prop; t1++) {
+                        if (wave(x1, y1, z1, t1)) {
+                            can_prop = propagator(d, t2, t1);
+                        }
+                    }
+
+                    if (!can_prop) {
+                        wave(x2, y2, z2, t2) = false;
+                        cell_changed = true;
+                    }
                 }
             }
 
@@ -433,6 +472,18 @@ bool ofxWFC3D::Propagate()
 
 void ofxWFC3D::Clear()
 {
+    // Clear the propagation queue and in_queue state from previous runs
+    while (!prop_queue.empty()) {
+        prop_queue.pop();
+    }
+    for (size_t x = 0; x < max_x; x++) {
+        for (size_t y = 0; y < max_y; y++) {
+            for (size_t z = 0; z < max_z; z++) {
+                in_queue(x, y, z) = false;
+            }
+        }
+    }
+
     for (size_t x = 0 ; x < max_x; x++) {
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
@@ -507,6 +558,46 @@ void ofxWFC3D::Clear()
         }
         wave(instanced.x, instanced.y, instanced.z, instanced.t) = true;
         changes(instanced.x, instanced.y, instanced.z) = true;
+    }
+
+    // Initialize entropy cache
+    entropy_cache = Array3D<double>(max_x, max_y, max_z, 0.0);
+    wave_count = Array3D<int>(max_x, max_y, max_z, 0);
+
+    // Populate cache with initial entropy and pattern counts
+    for (size_t x = 0; x < max_x; x++) {
+        for (size_t y = 0; y < max_y; y++) {
+            for (size_t z = 0; z < max_z; z++) {
+                int count = 0;
+                double sum_weight = 0.0;
+                double sum_log_weight = 0.0;
+
+                for (size_t t = 0; t < num_patterns; t++) {
+                    if (wave(x, y, z, t)) {
+                        count++;
+                        sum_weight += pattern_weight[t];
+                        sum_log_weight += pattern_weight[t] * log_prob[t];
+                    }
+                }
+
+                wave_count(x, y, z) = count;
+
+                // Compute Shannon entropy
+                if (count == 0) {
+                    entropy_cache(x, y, z) = 1E+3;  // Contradiction
+                } else if (count == 1) {
+                    entropy_cache(x, y, z) = 0.0;  // Fully determined
+                } else {
+                    // Safety check: ensure sum_weight is valid before log()
+                    if (sum_weight > 0.0) {
+                        double log_sum = log(sum_weight);
+                        entropy_cache(x, y, z) = log_sum - sum_log_weight / sum_weight;
+                    } else {
+                        entropy_cache(x, y, z) = 1E+3;  // Prevent NaN/Inf
+                    }
+                }
+            }
+        }
     }
 }
 
