@@ -2,6 +2,8 @@
 
 #include "ofMain.h"
 #include <regex>
+#include <queue>
+#include <cstdint>
 #include "arrays.h"
 
 /*
@@ -15,6 +17,10 @@ enum class Status {
     ObsSuccess,
     ObsFail,
     ObsUnfinished,
+};
+
+struct Cell {
+    size_t x, y, z;
 };
 
 struct InstancedTile {
@@ -70,7 +76,11 @@ private:
     Array3D<Bool> changes;
     Array3D<int> observed;
 
+    std::queue<Cell> prop_queue;
+    Array3D<Bool> in_queue;
+
     Array3D<Bool> propagator;
+    std::vector<std::vector<uint64_t>> prop_mask;  // [6][num_patterns] - bitset of compatible patterns
     std::vector<double> pattern_weight;
     std::vector< std::pair<size_t, size_t> > height_range;
     std::vector<std::string> tile_data;
@@ -79,6 +89,12 @@ private:
 
     std::vector<double> log_prob;
 	double log_T;
+
+    // Entropy cache optimization (flat vectors — no Array3D reassignment)
+    std::vector<double> ec_entropy;         // cached Shannon entropy per voxel
+    std::vector<double> ec_sum_weight;      // cached sum of pattern weights per voxel
+    std::vector<double> ec_sum_log_weight;  // cached sum of w*log(w) per voxel
+    std::vector<int>    ec_wave_count;      // cached valid pattern count per voxel
 
     ofXml xml;
 };

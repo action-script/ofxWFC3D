@@ -147,6 +147,7 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
     wave = Array4D<Bool> (max_x, max_y, max_z, num_patterns, false);
     changes = Array3D<Bool> (max_x, max_y, max_z, false);
     observed = Array3D<int> (max_x, max_y, max_z, -1);
+    in_queue = Array3D<Bool> (max_x, max_y, max_z, false);
 
 
     auto xmln_neighbors = xmln_set.getChild("neighbors");
@@ -208,6 +209,34 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     } // end neighbors
 
+    // Precompute log probabilities once here, not on every Run() call
+    log_T = log(num_patterns);
+    log_prob.clear();
+    log_prob.reserve(num_patterns);
+    for (size_t t = 0; t < num_patterns; t++)
+        log_prob.push_back(log(pattern_weight[t]));
+
+    // Precompute bitset masks for pattern compatibility (if num_patterns <= 64)
+    prop_mask.clear();
+    if (num_patterns <= 64) {
+        prop_mask.assign(6, std::vector<uint64_t>(num_patterns, 0ULL));
+        for (size_t d = 0; d < 6; d++) {
+            for (size_t t2 = 0; t2 < num_patterns; t2++) {
+                for (size_t t1 = 0; t1 < num_patterns; t1++) {
+                    if (propagator(d, t2, t1)) {
+                        prop_mask[d][t2] |= (1ULL << t1);
+                    }
+                }
+            }
+        }
+    }
+
+    // Allocate entropy cache vectors once (reset in Clear())
+    size_t grid_size = max_x * max_y * max_z;
+    ec_entropy.resize(grid_size);
+    ec_sum_weight.resize(grid_size);
+    ec_sum_log_weight.resize(grid_size);
+    ec_wave_count.resize(grid_size);
 
     //ofLog() << "Initialize Done";
 }
@@ -215,45 +244,21 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 Status ofxWFC3D::Observe()
 {
     //ofLog() << " -- Observing --";
-    double min = 1E+3, sum, main_sum, log_sum, noise, entropy;
+    double min = 1E+3, noise, entropy;
 
-    
-    // Lowest Entropy Coordinate Selection
+
+    // Lowest Entropy Coordinate Selection (using cached entropy)
     int selected_x = -1, selected_y = -1, selected_z = -1;
-    size_t amount;
 
     for (size_t x = 0; x < max_x; x++) {
         for (size_t y = 0; y < max_y; y++) {
             for (size_t z = 0; z < max_z; z++) {
-                amount = 0;
-                sum = 0;
+                size_t idx = x * max_y * max_z + y * max_z + z;
 
-                for (size_t t = 0; t < num_patterns; t++) {
-                    if (wave(x,y,z,t)) {
-                        amount += 1;
-                        sum += pattern_weight[t];
-                    }
-                }
+                if (ec_wave_count[idx] == 0) return Status::ObsFail;
 
-                if (sum == 0) return Status::ObsFail;
-
+                entropy = ec_entropy[idx];
                 noise = 1E-6 * ofRandom(1);
-
-                // Only 1 Tile Valid, So Entropy must be lowest
-                if (amount == 1)
-                    entropy = 0;
-                else if (amount == num_patterns)
-                    entropy = log_T;
-                else {
-                    main_sum = 0;
-                    log_sum = log(sum);
-
-                    for (size_t t = 0; t < num_patterns; t++) {
-                        if (wave(x,y,z,t)) main_sum += pattern_weight[t] * log_prob[t];
-                    }
-
-                    entropy = log_sum - main_sum / sum;
-                }
 
                 if (entropy > 0 && entropy + noise < min) {
                     min = entropy + noise;
@@ -261,7 +266,7 @@ Status ofxWFC3D::Observe()
                     selected_y = y;
                     selected_z = z;
                 }
-                
+
             }
         }
     } // end of x,y,z
@@ -299,6 +304,14 @@ Status ofxWFC3D::Observe()
     }
     changes(selected_x, selected_y, selected_z) = true;
 
+    // Update entropy cache for collapsed cell
+    {
+        size_t idx = (size_t)selected_x * max_y * max_z + (size_t)selected_y * max_z + (size_t)selected_z;
+        ec_wave_count[idx] = 1;
+        ec_sum_weight[idx] = pattern_weight[r];
+        ec_sum_log_weight[idx] = pattern_weight[r] * log_prob[r];
+        ec_entropy[idx] = 0.0;
+    }
 
     return Status::ObsUnfinished;
 }
@@ -306,99 +319,173 @@ Status ofxWFC3D::Observe()
 bool ofxWFC3D::Propagate()
 {
     //ofLog() << " -- Propagating --";
-    bool change = false, can_prop;
 
-    for (size_t x2 = 0; x2 < max_x; x2++) {
-        for (size_t y2 = 0; y2 < max_y; y2++) {
-            for (size_t z2 = 0; z2 < max_z; z2++) {
-                for (size_t d = 0; d < 6; d++) {
-
-                    int x1 = x2, y1 = y2, z1 = z2;
-
-                     // Periodic Check
-                    if (d == 0) { // <
-                        if (x2 == 0) {
-                            if (!periodic) continue;
-                            else x1 = max_x - 1;
-                        }
-                        else x1 = x2 - 1;
-                    }
-                    else if (d == 1) { // ^
-                        if (y2 == max_y - 1) {
-                            if (!periodic) continue;
-                            else y1 = 0;
-                        }
-                        else y1 = y2 + 1;
-                    }
-                    else if (d == 2) { // >
-                        if (x2 == max_x - 1) {
-                            if (!periodic) continue;
-                            else x1 = 0;
-                        }
-                        else x1 = x2 + 1;
-                    }
-                    else if (d == 3) { // v
-                        if (y2 == 0) {
-                            if (!periodic) continue;
-                            else y1 = max_y - 1;
-                        }
-                        else y1 = y2 - 1;
-                    }
-                    else if (d == 4) { // z>
-                        if (z2 == max_z - 1) {
-                            if (!periodic) continue;
-                            else z1 = 0;
-                        }
-                        else z1 = z2 + 1;
-                    }
-                    else { // <z
-                        if (z2 == 0) {
-                            if (!periodic) continue;
-                            else z1 = max_z - 1;
-                        }
-                        else z1 = z2 - 1;
-                    } // end periodic check
-
-
-                    // No Changes this Voxel
-                    if (!changes(x1, y1, z1)) {
-                        continue;
-                    }
-
-                    // x2 = Original Voxel
-                    // x1 = Neighbor Depending on Direction (0 - 6) and Periodicity
-                    
-                    for (size_t t2 = 0; t2 < num_patterns; t2++)  {
-                        if (wave(x2, y2, z2, t2)) {
-                            //auto prop = propagator[d][t2];
-                            can_prop = false;
-
-                            for (size_t t1 = 0; t1 < num_patterns && !can_prop; t1++) {
-                                if (wave(x1, y1, z1, t1)) {
-                                    can_prop = propagator(d, t2, t1); // t2 -> t1 Propagate Check
-                                }
-                            }
-
-                            if (!can_prop) {
-                                wave(x2, y2, z2, t2) = false;
-                                changes(x2, y2, z2) = true;
-                                change = true;
-                            }
-
-                        }
-                    } // end t2
-
-
+    // Seed the queue from changes[] array (cells that changed in Clear() or Observe())
+    for (size_t x = 0; x < max_x; x++) {
+        for (size_t y = 0; y < max_y; y++) {
+            for (size_t z = 0; z < max_z; z++) {
+                if (changes(x, y, z) && !in_queue(x, y, z)) {
+                    prop_queue.push({x, y, z});
+                    in_queue(x, y, z) = true;
                 }
             }
         }
-    } // end x2, y2, z2
+    }
 
-    return change;
+    // Clear changes array — queue is now the sole worklist for this pass
+    for (size_t x = 0; x < max_x; x++) {
+        for (size_t y = 0; y < max_y; y++) {
+            for (size_t z = 0; z < max_z; z++) {
+                changes(x, y, z) = false;
+            }
+        }
+    }
+
+    // Direction offsets: neighbors = (x1+dx[d], y1+dy[d], z1+dz[d])
+    // d represents the direction FROM the neighbor's perspective
+    static const int dx[6] = {+1, 0, -1, 0, 0, 0};
+    static const int dy[6] = {0, -1, 0, +1, 0, 0};
+    static const int dz[6] = {0, 0, 0, 0, -1, +1};
+
+    bool contradiction = false;
+
+    // Drain the queue
+    while (!prop_queue.empty()) {
+        Cell c = prop_queue.front();
+        prop_queue.pop();
+
+        size_t x1 = c.x, y1 = c.y, z1 = c.z;
+        in_queue(x1, y1, z1) = false;
+
+        // Check all 6 neighbors
+        for (int d = 0; d < 6; d++) {
+            int x2_int = x1 + dx[d];
+            int y2_int = y1 + dy[d];
+            int z2_int = z1 + dz[d];
+
+            // Boundary check with periodic wrapping
+            if (x2_int < 0) {
+                if (!periodic) continue;
+                x2_int = max_x - 1;
+            } else if (x2_int >= (int)max_x) {
+                if (!periodic) continue;
+                x2_int = 0;
+            }
+
+            if (y2_int < 0) {
+                if (!periodic) continue;
+                y2_int = max_y - 1;
+            } else if (y2_int >= (int)max_y) {
+                if (!periodic) continue;
+                y2_int = 0;
+            }
+
+            if (z2_int < 0) {
+                if (!periodic) continue;
+                z2_int = max_z - 1;
+            } else if (z2_int >= (int)max_z) {
+                if (!periodic) continue;
+                z2_int = 0;
+            }
+
+            size_t x2 = (size_t)x2_int;
+            size_t y2 = (size_t)y2_int;
+            size_t z2 = (size_t)z2_int;
+
+            // Check compatibility and eliminate invalid patterns at (x2, y2, z2)
+            bool cell_changed = false;
+            size_t idx2 = x2 * max_y * max_z + y2 * max_z + z2;
+
+            // Use bitset optimization if available, otherwise use original loop
+            if (!prop_mask.empty()) {
+                // Bitset version: build mask of compatible patterns at (x1,y1,z1)
+                uint64_t compatible = 0ULL;
+                for (size_t t1 = 0; t1 < num_patterns; t1++) {
+                    if (wave(x1, y1, z1, t1)) {
+                        compatible |= (1ULL << t1);
+                    }
+                }
+
+                // Check each pattern at (x2,y2,z2)
+                for (size_t t2 = 0; t2 < num_patterns; t2++) {
+                    if (!wave(x2, y2, z2, t2)) continue;
+
+                    // Use bitwise AND to check if any compatible pattern exists
+                    bool can_prop = (compatible & prop_mask[d][t2]) != 0ULL;
+
+                    if (!can_prop) {
+                        wave(x2, y2, z2, t2) = false;
+                        cell_changed = true;
+                        // Incrementally update entropy cache
+                        ec_wave_count[idx2]--;
+                        ec_sum_weight[idx2] -= pattern_weight[t2];
+                        ec_sum_log_weight[idx2] -= pattern_weight[t2] * log_prob[t2];
+                    }
+                }
+            } else {
+                // Original loop version (when num_patterns > 64)
+                for (size_t t2 = 0; t2 < num_patterns; t2++) {
+                    if (!wave(x2, y2, z2, t2)) continue;
+
+                    bool can_prop = false;
+                    for (size_t t1 = 0; t1 < num_patterns && !can_prop; t1++) {
+                        if (wave(x1, y1, z1, t1)) {
+                            can_prop = propagator(d, t2, t1);
+                        }
+                    }
+
+                    if (!can_prop) {
+                        wave(x2, y2, z2, t2) = false;
+                        cell_changed = true;
+                        // Incrementally update entropy cache
+                        ec_wave_count[idx2]--;
+                        ec_sum_weight[idx2] -= pattern_weight[t2];
+                        ec_sum_log_weight[idx2] -= pattern_weight[t2] * log_prob[t2];
+                    }
+                }
+            }
+
+            if (cell_changed) {
+                // Recompute cached entropy from updated sums
+                if (ec_wave_count[idx2] <= 1) {
+                    ec_entropy[idx2] = 0.0;
+                } else if (ec_sum_weight[idx2] > 0.0) {
+                    ec_entropy[idx2] = log(ec_sum_weight[idx2]) - ec_sum_log_weight[idx2] / ec_sum_weight[idx2];
+                } else {
+                    ec_entropy[idx2] = 0.0;
+                }
+
+                // Check for contradiction
+                if (ec_wave_count[idx2] == 0) {
+                    contradiction = true;
+                }
+
+                // Enqueue the neighbor if it's not already in the queue
+                if (!in_queue(x2, y2, z2)) {
+                    prop_queue.push({x2, y2, z2});
+                    in_queue(x2, y2, z2) = true;
+                }
+            }
+        }
+    }
+
+    return contradiction;
 }
 
 void ofxWFC3D::Clear()
 {
+    // Clear the propagation queue and in_queue state from previous runs
+    while (!prop_queue.empty()) {
+        prop_queue.pop();
+    }
+    for (size_t x = 0; x < max_x; x++) {
+        for (size_t y = 0; y < max_y; y++) {
+            for (size_t z = 0; z < max_z; z++) {
+                in_queue(x, y, z) = false;
+            }
+        }
+    }
+
     for (size_t x = 0 ; x < max_x; x++) {
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
@@ -474,6 +561,43 @@ void ofxWFC3D::Clear()
         wave(instanced.x, instanced.y, instanced.z, instanced.t) = true;
         changes(instanced.x, instanced.y, instanced.z) = true;
     }
+
+    // Populate entropy cache from current wave state (no Array3D reassignment)
+    std::fill(ec_entropy.begin(), ec_entropy.end(), 0.0);
+    std::fill(ec_sum_weight.begin(), ec_sum_weight.end(), 0.0);
+    std::fill(ec_sum_log_weight.begin(), ec_sum_log_weight.end(), 0.0);
+    std::fill(ec_wave_count.begin(), ec_wave_count.end(), 0);
+
+    for (size_t x = 0; x < max_x; x++) {
+        for (size_t y = 0; y < max_y; y++) {
+            for (size_t z = 0; z < max_z; z++) {
+                size_t idx = x * max_y * max_z + y * max_z + z;
+                int count = 0;
+                double sw = 0.0;
+                double slw = 0.0;
+
+                for (size_t t = 0; t < num_patterns; t++) {
+                    if (wave(x, y, z, t)) {
+                        count++;
+                        sw += pattern_weight[t];
+                        slw += pattern_weight[t] * log_prob[t];
+                    }
+                }
+
+                ec_wave_count[idx] = count;
+                ec_sum_weight[idx] = sw;
+                ec_sum_log_weight[idx] = slw;
+
+                if (count <= 1) {
+                    ec_entropy[idx] = 0.0;
+                } else if (sw > 0.0) {
+                    ec_entropy[idx] = log(sw) - slw / sw;
+                } else {
+                    ec_entropy[idx] = 0.0;
+                }
+            }
+        }
+    }
 }
 
 bool ofxWFC3D::SetTile(std::string tile_name, size_t x, size_t y, size_t z)
@@ -497,11 +621,6 @@ bool ofxWFC3D::SetTile(std::string tile_name, size_t x, size_t y, size_t z)
 
 bool ofxWFC3D::Run(int seed)
 {
-    log_T = log(num_patterns);
-
-    for (size_t t = 0; t < num_patterns; t++)
-        log_prob.push_back( log(pattern_weight[t]) );
-
     Clear();
 
     ofSeedRandom(seed);
@@ -512,7 +631,8 @@ bool ofxWFC3D::Run(int seed)
         if (result != Status::ObsUnfinished)
             return result == Status::ObsSuccess ? true : false;
 
-        while(Propagate());
+        // Propagate returns true if a contradiction is found
+        if (Propagate()) return false;
     }
     return false;
 }
