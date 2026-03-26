@@ -61,37 +61,37 @@
 		<horizontal left="up" right="vertical"/>
 		<horizontal left="up 3" right="vertical"/>
 		<horizontal left="vertical" right="vertical"/>
-		<vertical left="empty" right="down"/>
-		<vertical left="empty" right="empty"/>
-		<vertical left="empty" right="line"/>
-		<vertical left="line" right="empty"/>
-		<vertical left="empty" right="turn"/>
-		<vertical left="turn" right="empty"/>
-		<vertical left="up" right="empty"/>
-		<vertical left="line" right="line"/>
-		<vertical left="line" right="line 1"/>
-		<vertical left="line" right="turn"/>
-		<vertical left="turn" right="line"/>
-		<vertical left="up" right="line"/>
-		<vertical left="up 1" right="line"/>
-		<vertical left="line" right="down"/>
-		<vertical left="line 1" right="down"/>
-		<vertical left="turn" right="down"/>
-		<vertical left="turn 3" right="down"/>
-		<vertical left="up" right="down"/>
-		<vertical left="up" right="down 1"/>
-		<vertical left="up" right="down 2"/>
-		<vertical left="down" right="up"/>
-		<vertical left="down" right="up 1"/>
-		<vertical left="down" right="up 2"/>
-		<vertical left="down" right="vertical"/>
-		<vertical left="turn" right="turn"/>
-		<vertical left="turn" right="turn 1"/>
-		<vertical left="turn" right="turn 2"/>
-		<vertical left="up" right="turn"/>
-		<vertical left="up" right="turn 3"/>
-		<vertical left="vertical" right="up"/>
-		<vertical left="vertical" right="vertical"/>
+		<vertical bottom="empty" top="down"/>
+		<vertical bottom="empty" top="empty"/>
+		<vertical bottom="empty" top="line"/>
+		<vertical bottom="line" top="empty"/>
+		<vertical bottom="empty" top="turn"/>
+		<vertical bottom="turn" top="empty"/>
+		<vertical bottom="up" top="empty"/>
+		<vertical bottom="line" top="line"/>
+		<vertical bottom="line" top="line 1"/>
+		<vertical bottom="line" top="turn"/>
+		<vertical bottom="turn" top="line"/>
+		<vertical bottom="up" top="line"/>
+		<vertical bottom="up 1" top="line"/>
+		<vertical bottom="line" top="down"/>
+		<vertical bottom="line 1" top="down"/>
+		<vertical bottom="turn" top="down"/>
+		<vertical bottom="turn 3" top="down"/>
+		<vertical bottom="up" top="down"/>
+		<vertical bottom="up" top="down 1"/>
+		<vertical bottom="up" top="down 2"/>
+		<vertical bottom="down" top="up"/>
+		<vertical bottom="down" top="up 1"/>
+		<vertical bottom="down" top="up 2"/>
+		<vertical bottom="down" top="vertical"/>
+		<vertical bottom="turn" top="turn"/>
+		<vertical bottom="turn" top="turn 1"/>
+		<vertical bottom="turn" top="turn 2"/>
+		<vertical bottom="up" top="turn"/>
+		<vertical bottom="up" top="turn 3"/>
+		<vertical bottom="vertical" top="up"/>
+		<vertical bottom="vertical" top="vertical"/>
 	</neighbors>
 	<subsets>
 		<subset name="dense knots">

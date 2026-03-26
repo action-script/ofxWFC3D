@@ -231,11 +231,27 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         //   The XML says: "left" can appear to the LEFT of "right" (or equivalently,
         //   "right" can appear to the RIGHT of "left").
         //
-        // For "vertical": left=bottom, right=top (Y axis adjacency).
-        //   The XML says: "left" tile can appear BELOW "right" tile.
+        // For "vertical": bottom is below, top is above (Y axis adjacency).
+        //   XML format: <vertical bottom="tileName rot" top="tileName rot"/>
+        //   Legacy format with left/right is still supported for backwards compatibility.
         const std::string neighbor_type = xmln_neighbor.getName();
-        auto left = ofSplitString( xmln_neighbor.getAttribute("left").getValue(), " ", true);
-        auto right = ofSplitString( xmln_neighbor.getAttribute("right").getValue(), " ", true);
+
+        std::vector<std::string> left, right;
+        if (neighbor_type == "vertical") {
+            // Vertical neighbors: prefer bottom/top attributes, fall back to left/right
+            auto bottom_attr = xmln_neighbor.getAttribute("bottom");
+            if (bottom_attr.getValue() != "") {
+                left = ofSplitString(bottom_attr.getValue(), " ", true);
+                right = ofSplitString(xmln_neighbor.getAttribute("top").getValue(), " ", true);
+            } else {
+                // Legacy: left=bottom, right=top
+                left = ofSplitString(xmln_neighbor.getAttribute("left").getValue(), " ", true);
+                right = ofSplitString(xmln_neighbor.getAttribute("right").getValue(), " ", true);
+            }
+        } else {
+            left = ofSplitString(xmln_neighbor.getAttribute("left").getValue(), " ", true);
+            right = ofSplitString(xmln_neighbor.getAttribute("right").getValue(), " ", true);
+        }
 
         if (left.size() == 1) left.push_back("0");
         if (right.size() == 1) right.push_back("0");
