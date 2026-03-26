@@ -231,51 +231,34 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         }
     }
 
+    // Allocate entropy cache vectors once (reset in Clear())
+    size_t grid_size = max_x * max_y * max_z;
+    ec_entropy.resize(grid_size);
+    ec_sum_weight.resize(grid_size);
+    ec_sum_log_weight.resize(grid_size);
+    ec_wave_count.resize(grid_size);
+
     //ofLog() << "Initialize Done";
 }
 
 Status ofxWFC3D::Observe()
 {
     //ofLog() << " -- Observing --";
-    double min = 1E+3, sum, main_sum, log_sum, noise, entropy;
+    double min = 1E+3, noise, entropy;
 
-    
-    // Lowest Entropy Coordinate Selection
+
+    // Lowest Entropy Coordinate Selection (using cached entropy)
     int selected_x = -1, selected_y = -1, selected_z = -1;
-    size_t amount;
 
     for (size_t x = 0; x < max_x; x++) {
         for (size_t y = 0; y < max_y; y++) {
             for (size_t z = 0; z < max_z; z++) {
-                amount = 0;
-                sum = 0;
+                size_t idx = x * max_y * max_z + y * max_z + z;
 
-                for (size_t t = 0; t < num_patterns; t++) {
-                    if (wave(x,y,z,t)) {
-                        amount += 1;
-                        sum += pattern_weight[t];
-                    }
-                }
+                if (ec_wave_count[idx] == 0) return Status::ObsFail;
 
-                if (sum == 0) return Status::ObsFail;
-
+                entropy = ec_entropy[idx];
                 noise = 1E-6 * ofRandom(1);
-
-                // Only 1 Tile Valid, So Entropy must be lowest
-                if (amount == 1)
-                    entropy = 0;
-                else if (amount == num_patterns)
-                    entropy = log_T;
-                else {
-                    main_sum = 0;
-                    log_sum = log(sum);
-
-                    for (size_t t = 0; t < num_patterns; t++) {
-                        if (wave(x,y,z,t)) main_sum += pattern_weight[t] * log_prob[t];
-                    }
-
-                    entropy = log_sum - main_sum / sum;
-                }
 
                 if (entropy > 0 && entropy + noise < min) {
                     min = entropy + noise;
@@ -320,6 +303,15 @@ Status ofxWFC3D::Observe()
         wave(selected_x, selected_y, selected_z, t) = t == r;
     }
     changes(selected_x, selected_y, selected_z) = true;
+
+    // Update entropy cache for collapsed cell
+    {
+        size_t idx = (size_t)selected_x * max_y * max_z + (size_t)selected_y * max_z + (size_t)selected_z;
+        ec_wave_count[idx] = 1;
+        ec_sum_weight[idx] = pattern_weight[r];
+        ec_sum_log_weight[idx] = pattern_weight[r] * log_prob[r];
+        ec_entropy[idx] = 0.0;
+    }
 
     return Status::ObsUnfinished;
 }
@@ -402,6 +394,7 @@ bool ofxWFC3D::Propagate()
 
             // Check compatibility and eliminate invalid patterns at (x2, y2, z2)
             bool cell_changed = false;
+            size_t idx2 = x2 * max_y * max_z + y2 * max_z + z2;
 
             // Use bitset optimization if available, otherwise use original loop
             if (!prop_mask.empty()) {
@@ -423,6 +416,10 @@ bool ofxWFC3D::Propagate()
                     if (!can_prop) {
                         wave(x2, y2, z2, t2) = false;
                         cell_changed = true;
+                        // Incrementally update entropy cache
+                        ec_wave_count[idx2]--;
+                        ec_sum_weight[idx2] -= pattern_weight[t2];
+                        ec_sum_log_weight[idx2] -= pattern_weight[t2] * log_prob[t2];
                     }
                 }
             } else {
@@ -440,21 +437,26 @@ bool ofxWFC3D::Propagate()
                     if (!can_prop) {
                         wave(x2, y2, z2, t2) = false;
                         cell_changed = true;
+                        // Incrementally update entropy cache
+                        ec_wave_count[idx2]--;
+                        ec_sum_weight[idx2] -= pattern_weight[t2];
+                        ec_sum_log_weight[idx2] -= pattern_weight[t2] * log_prob[t2];
                     }
                 }
             }
 
             if (cell_changed) {
-                // Check for contradiction: does this cell have any valid patterns left?
-                bool any_valid = false;
-                for (size_t t = 0; t < num_patterns; t++) {
-                    if (wave(x2, y2, z2, t)) {
-                        any_valid = true;
-                        break;
-                    }
+                // Recompute cached entropy from updated sums
+                if (ec_wave_count[idx2] <= 1) {
+                    ec_entropy[idx2] = 0.0;
+                } else if (ec_sum_weight[idx2] > 0.0) {
+                    ec_entropy[idx2] = log(ec_sum_weight[idx2]) - ec_sum_log_weight[idx2] / ec_sum_weight[idx2];
+                } else {
+                    ec_entropy[idx2] = 0.0;
                 }
 
-                if (!any_valid) {
+                // Check for contradiction
+                if (ec_wave_count[idx2] == 0) {
                     contradiction = true;
                 }
 
@@ -560,41 +562,38 @@ void ofxWFC3D::Clear()
         changes(instanced.x, instanced.y, instanced.z) = true;
     }
 
-    // Initialize entropy cache
-    entropy_cache = Array3D<double>(max_x, max_y, max_z, 0.0);
-    wave_count = Array3D<int>(max_x, max_y, max_z, 0);
+    // Populate entropy cache from current wave state (no Array3D reassignment)
+    std::fill(ec_entropy.begin(), ec_entropy.end(), 0.0);
+    std::fill(ec_sum_weight.begin(), ec_sum_weight.end(), 0.0);
+    std::fill(ec_sum_log_weight.begin(), ec_sum_log_weight.end(), 0.0);
+    std::fill(ec_wave_count.begin(), ec_wave_count.end(), 0);
 
-    // Populate cache with initial entropy and pattern counts
     for (size_t x = 0; x < max_x; x++) {
         for (size_t y = 0; y < max_y; y++) {
             for (size_t z = 0; z < max_z; z++) {
+                size_t idx = x * max_y * max_z + y * max_z + z;
                 int count = 0;
-                double sum_weight = 0.0;
-                double sum_log_weight = 0.0;
+                double sw = 0.0;
+                double slw = 0.0;
 
                 for (size_t t = 0; t < num_patterns; t++) {
                     if (wave(x, y, z, t)) {
                         count++;
-                        sum_weight += pattern_weight[t];
-                        sum_log_weight += pattern_weight[t] * log_prob[t];
+                        sw += pattern_weight[t];
+                        slw += pattern_weight[t] * log_prob[t];
                     }
                 }
 
-                wave_count(x, y, z) = count;
+                ec_wave_count[idx] = count;
+                ec_sum_weight[idx] = sw;
+                ec_sum_log_weight[idx] = slw;
 
-                // Compute Shannon entropy
-                if (count == 0) {
-                    entropy_cache(x, y, z) = 1E+3;  // Contradiction
-                } else if (count == 1) {
-                    entropy_cache(x, y, z) = 0.0;  // Fully determined
+                if (count <= 1) {
+                    ec_entropy[idx] = 0.0;
+                } else if (sw > 0.0) {
+                    ec_entropy[idx] = log(sw) - slw / sw;
                 } else {
-                    // Safety check: ensure sum_weight is valid before log()
-                    if (sum_weight > 0.0) {
-                        double log_sum = log(sum_weight);
-                        entropy_cache(x, y, z) = log_sum - sum_log_weight / sum_weight;
-                    } else {
-                        entropy_cache(x, y, z) = 1E+3;  // Prevent NaN/Inf
-                    }
+                    ec_entropy[idx] = 0.0;
                 }
             }
         }

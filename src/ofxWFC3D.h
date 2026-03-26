@@ -90,9 +90,11 @@ private:
     std::vector<double> log_prob;
 	double log_T;
 
-    // Entropy cache optimization
-    Array3D<double> entropy_cache;
-    Array3D<int> wave_count;
+    // Entropy cache optimization (flat vectors — no Array3D reassignment)
+    std::vector<double> ec_entropy;         // cached Shannon entropy per voxel
+    std::vector<double> ec_sum_weight;      // cached sum of pattern weights per voxel
+    std::vector<double> ec_sum_log_weight;  // cached sum of w*log(w) per voxel
+    std::vector<int>    ec_wave_count;      // cached valid pattern count per voxel
 
     ofXml xml;
 };
