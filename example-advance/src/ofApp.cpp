@@ -96,7 +96,11 @@ void ofApp::keyPressed(int key){
         int x = 9, y = 5, z = 9;
 
         // config_name, subset, x, y, z, periodic=false, ground="", surround=false
+        auto t_setup_start = std::chrono::high_resolution_clock::now();
         wfc.SetUp("data.xml", "default", x, y, z, false, "", "empty");
+        auto t_setup_end = std::chrono::high_resolution_clock::now();
+        auto setup_us = std::chrono::duration_cast<std::chrono::microseconds>(t_setup_end - t_setup_start).count();
+        ofLog() << "WFC SetUp   | " << setup_us << " us (" << setup_us / 1000.0 << " ms) [" << x << "x" << y << "x" << z << "]";
 
         // instanciate an specific tile on the WFC
         /*
@@ -107,16 +111,19 @@ void ofApp::keyPressed(int key){
 
         int limit = 8, seed = (int)ofRandom(1000);
         for (int k = 0; k < limit; k++) {
+            auto t_start = std::chrono::high_resolution_clock::now();
             bool result = wfc.Run(seed++);
+            auto t_end = std::chrono::high_resolution_clock::now();
+            auto us = std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_start).count();
 
             if (result) {
-                ofLog() << "WFC success";
+                ofLog() << "WFC Run     | " << us << " us (" << us / 1000.0 << " ms) [" << x << "x" << y << "x" << z << "]";
 
                 // process tiles and convert to ofNode tree
                 nodes = wfc.NodeTileOutput(world_node, glm::vec3(vs,vs,vs), {"empty"});
                 break;
             } else {
-                ofLog() << "WFC failure";
+                ofLog() << "WFC failure | " << us << " us (" << us / 1000.0 << " ms)";
             }
         }
 
