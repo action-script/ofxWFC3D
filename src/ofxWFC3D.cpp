@@ -45,12 +45,48 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     auto xmln_tiles = xmln_set.getChild("tiles");
 
+    // =========================================================================
+    // SYMMETRY & ROTATION SYSTEM
+    // =========================================================================
+    // Coordinate system: X-right, Y-up, Z-forward (right-handed)
+    // All rotations are around the Y axis (vertical), anticlockwise when viewed from above.
+    //
+    // Each tile has a "symmetry" attribute that determines how many distinct
+    // orientations it produces (cardinality) and how rotations/mirrors relate them.
+    //
+    // Two functions define each symmetry group:
+    //   a(i) = rotate 90deg CCW around Y.  Maps rotation index i to the next rotation.
+    //   b(i) = mirror/reflect the tile.    Maps rotation index i to its mirrored variant.
+    //
+    // Rotation index i:  0 = 0deg,  1 = 90deg CCW,  2 = 180deg,  3 = 270deg CCW
+    //
+    // Symmetry types (viewed from above, Y axis pointing at you):
+    //
+    //   "X" — Fully symmetric (e.g. cube, sphere). All rotations are identical.
+    //         Cardinality: 1.  a(i)=i, b(i)=i
+    //
+    //   "I" — Line symmetry (e.g. straight pipe). 0deg and 180deg are the same.
+    //         Cardinality: 2.  a(i)=1-i (flip between 0 and 1), b(i)=i (mirror = identity)
+    //
+    //   "\" — Diagonal symmetry (e.g. diagonal connector).
+    //         Cardinality: 2.  a(i)=1-i, b(i)=1-i (mirror = rotation)
+    //
+    //   "L" — L-shape (e.g. corner piece). No rotational symmetry, mirror swaps adjacent.
+    //         Cardinality: 4.  a(i)=(i+1)%4, b(i)= i even? i+1 : i-1
+    //         Mirror swaps: 0<->1, 2<->3
+    //
+    //   "T" — T-shape (e.g. T-junction). Mirror preserves 0 and 2, swaps 1 and 3.
+    //         Cardinality: 4.  a(i)=(i+1)%4, b(i)= i even? i : 4-i
+    //         Mirror swaps: 1<->3, keeps 0 and 2
+    //
+    //   "+" — Cross/plus shape. Has 4 rotations but NO mirror symmetry.
+    //         Cardinality: 4.  a(i)=(i+1)%4, b(i)=i (mirror = identity)
+    //         Marked in no_symmetry[] to disable mirrored propagation rules.
+    // =========================================================================
+
     for (auto& xmln_tile : xmln_tiles.getChildren()) {
         const std::string tile_name = xmln_tile.getAttribute("name").getValue();
 
-        // find tile_name on subset
-        //auto it = std::find(subset.begin(), subset.end(), tile_name);
-        //if (subset.size() > 0 && it == subset.end()) continue;
         if (subset.size() > 0 && !ofContains(subset, tile_name)) continue;
 
         std::function<int(int)> a, b;
@@ -59,30 +95,29 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         const std::string sym = xmln_tile.getAttribute("symmetry").getValue();
         if (sym == "L") {
             cardinality = 4;
-            a = [](int i){ return (i + 1) % 4; };
-            b = [](int i){ return i % 2 == 0 ? i + 1 : i - 1; };
+            a = [](int i){ return (i + 1) % 4; };       // rotate 90 CCW
+            b = [](int i){ return i % 2 == 0 ? i + 1 : i - 1; }; // mirror: swap 0<->1, 2<->3
         } else if (sym == "T") {
             cardinality = 4;
-            a = [](int i){ return (i + 1) % 4; };
-            b = [](int i){ return i % 2 == 0 ? i : 4 - i; };
+            a = [](int i){ return (i + 1) % 4; };       // rotate 90 CCW
+            b = [](int i){ return i % 2 == 0 ? i : 4 - i; };     // mirror: keep 0,2; swap 1<->3
         } else if (sym == "+") {
             cardinality = 4;
-            a = [](int i){ return (i + 1) % 4; };
-            //b = [](int i){ return (i + 2) % 4; };
-            b = [](int i){ return i; };
-            no_symmetry.push_back(action.size());
+            a = [](int i){ return (i + 1) % 4; };       // rotate 90 CCW
+            b = [](int i){ return i; };                  // mirror = identity (no reflection)
+            no_symmetry.push_back(action.size());        // flag: disable mirrored propagation rules
         } else if (sym == "I") {
             cardinality = 2;
-            a = [](int i){ return 1 - i; };
-            b = [](int i){ return i; };
+            a = [](int i){ return 1 - i; };             // rotate 90 = flip (0<->1)
+            b = [](int i){ return i; };                  // mirror = identity
         } else if (sym == "\\") {
             cardinality = 2;
-            a = [](int i){ return 1 - i; };
-            b = [](int i){ return 1 - i; };
+            a = [](int i){ return 1 - i; };             // rotate 90 = flip (0<->1)
+            b = [](int i){ return 1 - i; };             // mirror = same as rotation
         } else if (sym == "X") {
             cardinality = 1;
-            a = [](int i){ return i; };
-            b = [](int i){ return i; };
+            a = [](int i){ return i; };                  // rotate = identity (fully symmetric)
+            b = [](int i){ return i; };                  // mirror  = identity
         } else {
             cardinality = 0;
             ofLogError() << "Unknown symmetry " << sym;
@@ -94,21 +129,33 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
         if (tile_name == ground_name) ground_id = num_patterns;
         if (tile_name == surround_name) surround_id = num_patterns;
 
+        // Build the action map for this tile.
+        // action[pattern_id] is an 8-element array mapping the pattern to its
+        // transformed variants (global pattern IDs):
+        //   [0] = same orientation (0deg)
+        //   [1] = rotated  90deg CCW around Y
+        //   [2] = rotated 180deg around Y
+        //   [3] = rotated 270deg CCW (= 90deg CW) around Y
+        //   [4] = mirrored at 0deg
+        //   [5] = mirrored at 90deg
+        //   [6] = mirrored at 180deg  (used in propagation as "-90deg mirror")
+        //   [7] = mirrored at 270deg
         for (int t = 0; t < cardinality; ++t) {
             std::array<int, 8> map;
 
-            // Rotation
-			map[0] = t;
-			map[1] = a(t);
-			map[2] = a(a(t));
-			map[3] = a(a(a(t)));
+            // Rotations (CCW around Y axis, viewed from above)
+			map[0] = t;              //   0deg — original orientation
+			map[1] = a(t);           //  90deg CCW
+			map[2] = a(a(t));        // 180deg
+			map[3] = a(a(a(t)));     // 270deg CCW (= 90deg CW)
 
-            // Mirror of Rotations
-			map[4] = b(t);
-			map[5] = b(a(t));
-			map[6] = b(a(a(t)));
-			map[7] = b(a(a(a(t))));
+            // Mirrored variants of each rotation
+			map[4] = b(t);           // mirror of   0deg
+			map[5] = b(a(t));        // mirror of  90deg
+			map[6] = b(a(a(t)));     // mirror of 180deg
+			map[7] = b(a(a(a(t)))); // mirror of 270deg
 
+            // Offset by num_patterns to convert local rotation index to global pattern ID
 			for (int s = 0; s < 8; ++s) {
 				map[s] += num_patterns;
 			}
@@ -116,6 +163,9 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 			action.push_back(map);
 		}
 
+        // tile_data stores "tileName rotationIndex" strings, one per pattern.
+        // rotationIndex: 0=0deg, 1=90deg, 2=180deg, 3=270deg (CCW around Y)
+        // Used by NodeTileOutput() / getNodes() to apply the rotation when rendering.
         tile_data.push_back(tile_name+" 0");
         for (int t = 1; t < cardinality; t++) {
             tile_data.push_back(tile_name + (" " + ofToString(t)));
@@ -142,6 +192,25 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     num_patterns = action.size();
 
+    // =========================================================================
+    // PROPAGATOR — neighbor compatibility matrix
+    // =========================================================================
+    // propagator(d, patternA, patternB) = true means:
+    //   "patternA at cell C can have patternB as its neighbor in direction d from C"
+    //
+    // Direction index convention (6 directions in 3D grid):
+    //   d=0: -X  (left)
+    //   d=1: +Y  (up)
+    //   d=2: +X  (right)
+    //   d=3: -Y  (down)
+    //   d=4: +Z  (forward, into screen)
+    //   d=5: -Z  (back, out of screen)
+    //
+    // Opposite directions are mirrors of each other:
+    //   d=0 (-X) is the reverse of d=2 (+X)
+    //   d=3 (-Y) is the reverse of d=1 (+Y)
+    //   d=5 (-Z) is the reverse of d=4 (+Z)
+    // =========================================================================
     propagator = Array3D<Bool> (6,num_patterns,num_patterns, false);
 
     wave = Array4D<Bool> (max_x, max_y, max_z, num_patterns, false);
@@ -152,6 +221,18 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
     auto xmln_neighbors = xmln_set.getChild("neighbors");
     for (auto& xmln_neighbor : xmln_neighbors.getChildren()) {
+        // XML neighbor format:
+        //   <horizontal left="tileName rotationIndex" right="tileName rotationIndex"/>
+        //   <vertical   left="tileName rotationIndex" right="tileName rotationIndex"/>
+        // rotationIndex defaults to 0 if omitted.
+        //
+        // For "horizontal": left/right define an adjacency on the X axis (and Z via rotation).
+        //   "left" tile is at -X, "right" tile is at +X.
+        //   The XML says: "left" can appear to the LEFT of "right" (or equivalently,
+        //   "right" can appear to the RIGHT of "left").
+        //
+        // For "vertical": left=bottom, right=top (Y axis adjacency).
+        //   The XML says: "left" tile can appear BELOW "right" tile.
         const std::string neighbor_type = xmln_neighbor.getName();
         auto left = ofSplitString( xmln_neighbor.getAttribute("left").getValue(), " ", true);
         auto right = ofSplitString( xmln_neighbor.getAttribute("right").getValue(), " ", true);
@@ -161,49 +242,64 @@ void ofxWFC3D::SetUp(std::string config_file, std::string subset_name, size_t ma
 
         if (subset.size() > 0 && (!ofContains(subset, left[0]) || !ofContains(subset, right[0]))) continue;
 
-
+        // L = global pattern ID for the "left" tile at its specified rotation
+        // R = global pattern ID for the "right" tile at its specified rotation
+        // The action table converts (tile_name, rotation_index) → global pattern ID
         int L = action[first_occurrence[left[0]]] [ofToInt(left[1])];
 		int R = action[first_occurrence[right[0]]][ofToInt(right[1])];
-		int D = action[L][1]; // turn +1 = 90 anticlockwise 
-		int U = action[R][1];
 
-        // allow [+] tiles to work without symmetry
+        // D = L rotated 90deg CCW.  When the horizontal rule is rotated 90deg CCW,
+        //     the +X axis becomes +Z, so L (which was the left/-X neighbor) becomes
+        //     the forward/+Z neighbor. D is used for Z-axis propagation rules.
+        // U = R rotated 90deg CCW.  Same rotation applied to the right tile.
+		int D = action[L][1]; // L rotated 90deg CCW around Y
+		int U = action[R][1]; // R rotated 90deg CCW around Y
+
+        // Disable mirror-based propagation rules when either tile has "+" symmetry,
+        // because "+" tiles have rotational variants but no meaningful mirror.
         bool symmetry = true;
         for (auto& s : no_symmetry)
             if (s == first_occurrence[left[0]] || s == first_occurrence[right[0]]) symmetry = false;
 
-        // coord and axis replacement for xyz | x+ yUp zForward
-        // 0 -> 0
-        // 1 -> 4
-        // 2 -> 2
-        // 3 -> 5
-        // 4 -> 1
-        // 5 -> 3
-
         if (neighbor_type == "horizontal") {
+            // --- X-axis rules (direction 2 = +X) ---
+            // Base rule: L can have R to its right (+X) at the original orientation
             propagator(2, L, R) = true;
             if (symmetry) {
-                propagator(2, action[L][6], action[R][6]) = true;   // -90
-                propagator(2, action[R][4], action[L][4]) = true;   // 90
+                // Mirror rotated variants:
+                // action[L][6] = L mirrored at 180deg, action[R][6] = R mirrored at 180deg
+                propagator(2, action[L][6], action[R][6]) = true;   // mirrored -90deg variant
+                // action[R][4] = R mirrored at 0deg, action[L][4] = L mirrored at 0deg
+                propagator(2, action[R][4], action[L][4]) = true;   // mirrored +90deg variant
             }
-            propagator(2, action[R][2], action[L][2]) = true;       // 180
+            // 180deg rotation: R and L swap sides
+            propagator(2, action[R][2], action[L][2]) = true;       // 180deg rotated variant
 
+            // --- Z-axis rules (direction 4 = +Z) ---
+            // The horizontal rule rotated 90deg CCW maps X-axis to Z-axis.
+            // U (rotated R) can have D (rotated L) in the +Z direction.
             propagator(4, U, D) = true;
             if (symmetry) {
-                propagator(4, action[D][6], action[U][6]) = true;
-                propagator(4, action[U][4], action[D][4]) = true;
+                propagator(4, action[D][6], action[U][6]) = true;   // mirrored -90deg variant
+                propagator(4, action[U][4], action[D][4]) = true;   // mirrored +90deg variant
             }
-            propagator(4, action[D][2], action[U][2]) = true;
-        } else {
-            for (int g = 0; g < 8; g++) propagator(1, action[L][g], action[R][g]) = true;
+            propagator(4, action[D][2], action[U][2]) = true;       // 180deg rotated variant
 
+        } else {
+            // --- Y-axis rules (direction 1 = +Y) ---
+            // Vertical neighbors: all 8 rotation/mirror variants are valid.
+            // "left" is below, "right" is above. Vertical adjacency is rotation-invariant
+            // around Y, so every transformed pair is also valid.
+            for (int g = 0; g < 8; g++) propagator(1, action[L][g], action[R][g]) = true;
         }
 
+        // Derive opposite direction rules by swapping pattern order:
+        // "A can have B to its right" implies "B can have A to its left"
         for (size_t t1 = 0; t1 < num_patterns; ++t1) {
             for (size_t t2 = 0; t2 < num_patterns; ++t2) {
-                propagator(0, t1, t2) = propagator(2, t2, t1);
-                propagator(5 ,t1, t2) = propagator(4, t2, t1);
-                propagator(3, t1, t2) = propagator(1, t2, t1);
+                propagator(0, t1, t2) = propagator(2, t2, t1);  // -X from +X (left from right)
+                propagator(5 ,t1, t2) = propagator(4, t2, t1);  // -Z from +Z (back from forward)
+                propagator(3, t1, t2) = propagator(1, t2, t1);  // -Y from +Y (down from up)
             }
         }
 
@@ -341,8 +437,21 @@ bool ofxWFC3D::Propagate()
         }
     }
 
-    // Direction offsets: neighbors = (x1+dx[d], y1+dy[d], z1+dz[d])
-    // d represents the direction FROM the neighbor's perspective
+    // Direction offsets: x2 = x1+dx[d], y2 = y1+dy[d], z2 = z1+dz[d]
+    // x1 is the changed cell (popped from queue), x2 is the neighbor to check.
+    //
+    // The offset moves FROM x1 TO x2, but the propagator direction d describes
+    // the relationship from x2's perspective (where x1 is relative to x2):
+    //
+    // d=0: dx=+1 → x2 is to the RIGHT (+X) of x1.  From x2's view, x1 is LEFT  (-X)
+    // d=1: dy=-1 → y2 is BELOW (-Y) x1.             From x2's view, x1 is UP    (+Y)
+    // d=2: dx=-1 → x2 is to the LEFT (-X) of x1.    From x2's view, x1 is RIGHT (+X)
+    // d=3: dy=+1 → y2 is ABOVE (+Y) x1.             From x2's view, x1 is DOWN  (-Y)
+    // d=4: dz=-1 → z2 is BEHIND (-Z) x1.            From x2's view, x1 is FWD   (+Z)
+    // d=5: dz=+1 → z2 is in FRONT (+Z) of x1.       From x2's view, x1 is BACK  (-Z)
+    //
+    // propagator(d, t2, t1) checks: "can pattern t2 at x2 have pattern t1 in direction d?"
+    // This matches the propagator setup where d=2 is +X, d=0 is -X, etc.
     static const int dx[6] = {+1, 0, -1, 0, 0, 0};
     static const int dy[6] = {0, -1, 0, +1, 0, 0};
     static const int dz[6] = {0, 0, 0, 0, -1, +1};
@@ -655,7 +764,8 @@ std::string ofxWFC3D::TextOutput()
     return result;
 }
 
-// outputs a 3d list of the tileName as key for its cardinality (rotation)
+// Outputs a 3D grid [x][y][z] where each cell is a map: { tileName → rotationIndex }
+// rotationIndex: 0=0deg, 1=90deg, 2=180deg, 3=270deg (CCW around Y, viewed from above)
 std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > ofxWFC3D::TileOutput()
 {
     std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >> > > tiles;
@@ -676,7 +786,11 @@ std::vector< std::vector< std::vector< std::unordered_map<std::string, size_t >>
     return tiles;
 }
 
-// outputs a key-value vector of the tileName and the transformation ofNode
+// Outputs a vector of (tileName, ofNode) pairs with position and rotation applied.
+// Coordinate system: X-right, Y-up, Z-forward.
+// Rotation: rotationIndex * 90 degrees CCW around Y axis (viewed from above).
+//   rotationIndex 0 = 0deg (original), 1 = 90deg CCW, 2 = 180deg, 3 = 270deg CCW
+// Position: grid cell (x,y,z) * grid_size — no additional offset.
 std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& parent_node, glm::vec3 grid_size, std::vector<std::string> ignore)
 {
     glm::vec3 axis_y = glm::vec3(0.0, 1.0, 0.0);
@@ -685,6 +799,7 @@ std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& p
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
 
+                // tile_cardinality[0] = tile name, tile_cardinality[1] = rotation index (0-3)
                 auto tile_cardinality = ofSplitString(tile_data[observed(x, y, z)], " ", true);
                 if ( ofContains(ignore, tile_cardinality[0]) ) continue;
 
@@ -692,6 +807,7 @@ std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& p
                 ofNode tile_node;
                 tile_node.setParent(parent_node);
                 tile_node.setPosition(x*grid_size.x, y*grid_size.y, z*grid_size.z);
+                // Apply rotation: rotationIndex * 90deg CCW around Y
                 tile_node.rotateDeg(ofToInt( tile_cardinality[1])*90.0f, axis_y );
 
                 std::pair<std::string, ofNode> tile = std::make_pair(tile_cardinality[0], tile_node);
@@ -705,7 +821,9 @@ std::vector< std::pair<std::string, ofNode> > ofxWFC3D::NodeTileOutput(ofNode& p
     return tiles;
 }
 
-// sets the tiles positions as ofNodes and returns a single dimensional vector with the transformations.
+// Same as NodeTileOutput but returns only the ofNode transformations (no tile names).
+// Rotation: rotationIndex * 90 degrees CCW around Y axis (viewed from above).
+// Position: grid cell (x,y,z) * grid_size.
 std::vector<ofNode> ofxWFC3D::getNodes(ofNode& parent_node, glm::vec3 grid_size, std::vector<std::string> ignore) {
     std::vector<ofNode> transformations;
 
@@ -714,6 +832,7 @@ std::vector<ofNode> ofxWFC3D::getNodes(ofNode& parent_node, glm::vec3 grid_size,
         for (size_t y = 0 ; y < max_y; y++) {
             for (size_t z = 0 ; z < max_z; z++) {
 
+                // tile_cardinality[0] = tile name, tile_cardinality[1] = rotation index (0-3)
                 auto tile_cardinality = ofSplitString(tile_data[observed(x, y, z)], " ", true);
                 if ( ofContains(ignore, tile_cardinality[0]) ) continue;
 
@@ -721,6 +840,7 @@ std::vector<ofNode> ofxWFC3D::getNodes(ofNode& parent_node, glm::vec3 grid_size,
                 ofNode tile_node;
                 tile_node.setParent(parent_node);
                 tile_node.setPosition(x*grid_size.x, y*grid_size.y, z*grid_size.z);
+                // Apply rotation: rotationIndex * 90deg CCW around Y
                 tile_node.rotateDeg(ofToInt( tile_cardinality[1])*90.0f, axis_y );
 
                 transformations.push_back(tile_node);
